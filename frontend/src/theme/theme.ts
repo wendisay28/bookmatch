@@ -19,34 +19,38 @@ const theme = createTheme({
     maxContentWidth: 1200,
   },
   palette: {
+    mode: 'light',
     primary: {
-      main: '#E67E22', // Warm orange
-      light: '#F39C12',
-      dark: '#D35400',
+      main: '#3B82F6', // Bright blue
+      light: '#60A5FA',
+      dark: '#2563EB',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#2C3E50', // Dark blue-gray
-      light: '#34495E',
-      dark: '#1A252F',
+      main: '#8B5CF6', // Purple-blue
+      light: '#A78BFA',
+      dark: '#7C3AED',
       contrastText: '#FFFFFF',
     },
     background: {
-      default: '#F9F5F0', // Warm off-white
+      default: '#F0F9FF', // Very light blue
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#2C3E50',
-      secondary: '#7F8C8D',
+      primary: '#1E293B',
+      secondary: '#64748B',
     },
     success: {
-      main: '#27AE60',
+      main: '#10B981',
     },
     warning: {
-      main: '#F39C12',
+      main: '#F59E0B',
     },
     error: {
-      main: '#E74C3C',
+      main: '#EF4444',
+    },
+    info: {
+      main: '#06B6D4',
     },
   },
   typography: {
@@ -107,18 +111,30 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          padding: '8px 24px',
+          borderRadius: 16,
+          padding: '12px 32px',
           textTransform: 'none',
-          fontWeight: 600,
+          fontWeight: 700,
+          fontSize: '1rem',
           boxShadow: 'none',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            transform: 'translateY(-2px)',
+            boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
           },
         },
         contained: {
+          background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+            boxShadow: '0 16px 32px rgba(59, 130, 246, 0.4)',
+          },
+        },
+        outlined: {
+          borderWidth: 2,
+          '&:hover': {
+            borderWidth: 2,
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
           },
         },
       },
@@ -126,12 +142,14 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-          transition: 'transform 0.2s, box-shadow 0.2s',
+          borderRadius: 24,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          border: '1px solid rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(10px)',
           '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+            transform: 'translateY(-8px) scale(1.02)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
           },
         },
       },
@@ -139,9 +157,35 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          backdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(0,0,0,0.08)',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          fontWeight: 600,
+          fontSize: '0.875rem',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+        },
+        elevation1: {
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        },
+        elevation2: {
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+        },
+        elevation3: {
+          boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
         },
       },
     },

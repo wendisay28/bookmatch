@@ -15,17 +15,16 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
+    "baseUrl": "src",
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node", "jest", "@testing-library/jest-dom"],
     "paths": {
-      "@/*": ["src/*"],
-      "@context/*": ["src/context/*"],
-      "@pages/*": ["src/pages/*"],
-      "@components/*": ["src/components/*"]
-    },
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+      "@/*": ["./*"],
+      "@context/*": ["./context/*"],
+      "@pages/*": ["./pages/*"],
+      "@components/*": ["./components/*"]
+    }
   },
-  "include": ["src",
-    "src/**/*.ts",
-    "src/**/*.tsx"],
-  "exclude": ["node_modules", "**/node_modules/*"]
+  "include": ["src"],
+  "exclude": ["node_modules", "build"]
 }

@@ -1,351 +1,569 @@
 import React, { useState } from 'react';
-import { Calendar, Grid, Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Container,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
+  Button,
+  TextField,
+  InputAdornment,
+  Chip,
+  Box,
+  IconButton,
+  ToggleButtonGroup,
+  ToggleButton,
+  Stack,
+  Avatar,
+  Divider,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  CalendarMonth as CalendarIcon,
+  LocationOn as LocationIcon,
+  Group as GroupIcon,
+  AccessTime as TimeIcon,
+  ViewModule as GridViewIcon,
+  CalendarViewMonth as CalendarViewIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Share as ShareIcon,
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
 
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  attendees: number;
-  image: string;
-  category: string;
-  description: string;
-}
+// Mock data para eventos
+const mockEvents = [
+  {
+    id: 1,
+    title: 'Club de Lectura: Realismo Mágico',
+    description: 'Únete a nosotros para explorar las obras maestras del realismo mágico latinoamericano.',
+    date: '2024-10-15',
+    time: '18:00',
+    location: 'Café Literario Central',
+    attendees: 24,
+    maxAttendees: 30,
+    category: 'Club de Lectura',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80',
+    host: {
+      name: 'María García',
+      avatar: 'https://i.pravatar.cc/150?img=1',
+    },
+  },
+  {
+    id: 2,
+    title: 'Taller de Escritura Creativa',
+    description: 'Aprende técnicas de narrativa y desarrolla tu voz como escritor en este taller interactivo.',
+    date: '2024-10-18',
+    time: '16:00',
+    location: 'Biblioteca Municipal',
+    attendees: 15,
+    maxAttendees: 20,
+    category: 'Taller',
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80',
+    host: {
+      name: 'Carlos Ruiz',
+      avatar: 'https://i.pravatar.cc/150?img=3',
+    },
+  },
+  {
+    id: 3,
+    title: 'Intercambio de Libros',
+    description: 'Trae tus libros favoritos y descubre nuevas lecturas en nuestro intercambio mensual.',
+    date: '2024-10-22',
+    time: '11:00',
+    location: 'Parque Central',
+    attendees: 42,
+    maxAttendees: 50,
+    category: 'Intercambio',
+    image: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=800&q=80',
+    host: {
+      name: 'Ana Martínez',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+    },
+  },
+  {
+    id: 4,
+    title: 'Presentación: Nuevos Autores',
+    description: 'Conoce a los autores emergentes y sus últimas obras en una tarde llena de inspiración.',
+    date: '2024-10-25',
+    time: '19:30',
+    location: 'Auditorio Cultural',
+    attendees: 38,
+    maxAttendees: 100,
+    category: 'Presentación',
+    image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80',
+    host: {
+      name: 'Luis Fernández',
+      avatar: 'https://i.pravatar.cc/150?img=7',
+    },
+  },
+  {
+    id: 5,
+    title: 'Noche de Poesía',
+    description: 'Una velada especial donde poetas locales comparten sus versos más profundos.',
+    date: '2024-10-28',
+    time: '20:00',
+    location: 'Teatro Pequeño',
+    attendees: 28,
+    maxAttendees: 40,
+    category: 'Poesía',
+    image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&q=80',
+    host: {
+      name: 'Sofia León',
+      avatar: 'https://i.pravatar.cc/150?img=9',
+    },
+  },
+  {
+    id: 6,
+    title: 'Maratón de Lectura',
+    description: 'Un día completo dedicado a la lectura continua de obras clásicas y contemporáneas.',
+    date: '2024-11-02',
+    time: '10:00',
+    location: 'Plaza de la Literatura',
+    attendees: 56,
+    maxAttendees: 80,
+    category: 'Maratón',
+    image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80',
+    host: {
+      name: 'Pedro Sánchez',
+      avatar: 'https://i.pravatar.cc/150?img=11',
+    },
+  },
+];
 
-interface CalendarDate {
-  daysInMonth: number;
-  startingDayOfWeek: number;
-  year: number;
-  month: number;
-}
+const categories = ['Todos', 'Club de Lectura', 'Taller', 'Intercambio', 'Presentación', 'Poesía', 'Maratón'];
 
-const EventsPage: React.FC = () => {
+const EventsPage = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
-  const [currentDate, setCurrentDate] = useState<Date>(new Date(2023, 9, 1)); // October 2023
+  const [favorites, setFavorites] = useState<number[]>([]);
 
-  // Mock data for events
-  const events = [
-    {
-      id: 1,
-      title: 'Club de Lectura Virtual',
-      date: '2023-10-15',
-      time: '18:00 - 20:00',
-      location: 'En línea',
-      attendees: 24,
-      image: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=400&h=250&fit=crop',
-      category: 'Virtual',
-      description: 'Únete a nuestra comunidad de lectores para discutir el libro del mes'
-    },
-    {
-      id: 2,
-      title: 'Feria del Libro',
-      date: '2023-10-22',
-      time: '10:00 - 18:00',
-      location: 'Centro Cultural',
-      attendees: 150,
-      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=250&fit=crop',
-      category: 'Presencial',
-      description: 'La feria más grande de la ciudad con autores invitados'
-    },
-    {
-      id: 3,
-      title: 'Taller de Escritura Creativa',
-      date: '2023-10-18',
-      time: '16:00 - 19:00',
-      location: 'Biblioteca Central',
-      attendees: 30,
-      image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&h=250&fit=crop',
-      category: 'Taller',
-      description: 'Aprende técnicas de escritura con profesionales'
-    },
-    {
-      id: 4,
-      title: 'Presentación de Autor',
-      date: '2023-10-25',
-      time: '19:00 - 21:00',
-      location: 'Auditorio Municipal',
-      attendees: 80,
-      image: 'https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=400&h=250&fit=crop',
-      category: 'Presentación',
-      description: 'Conoce al autor bestseller y su nueva obra'
-    },
-    {
-      id: 5,
-      title: 'Club de Poesía',
-      date: '2023-10-12',
-      time: '17:00 - 19:00',
-      location: 'Café Literario',
-      attendees: 15,
-      image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=250&fit=crop',
-      category: 'Virtual',
-      description: 'Comparte y escucha poesía en un ambiente acogedor'
-    },
-    {
-      id: 6,
-      title: 'Intercambio de Libros',
-      date: '2023-10-28',
-      time: '11:00 - 15:00',
-      location: 'Parque Central',
-      attendees: 45,
-      image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=250&fit=crop',
-      category: 'Presencial',
-      description: 'Trae tus libros y descubre nuevas lecturas'
-    }
-  ];
+  const filteredEvents = mockEvents.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'Todos' || event.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  // Calendar functions
-  const getDaysInMonth = (date: Date): CalendarDate => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-    
-    return { daysInMonth, startingDayOfWeek, year, month };
+  const toggleFavorite = (eventId: number) => {
+    setFavorites(prev =>
+      prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]
+    );
   };
 
-  const getEventsForDay = (day: number): Event[] => {
-    const { year, month } = getDaysInMonth(currentDate);
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return events.filter(event => event.date === dateStr);
+  const getAttendancePercentage = (attendees: number, maxAttendees: number) => {
+    return (attendees / maxAttendees) * 100;
   };
-
-  const navigateMonth = (direction: number): void => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
-  };
-
-  const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
-  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-            Eventos
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Descubre y únete a nuestras actividades literarias
-          </p>
-        </div>
-
-        {/* View Toggle */}
-        <div className="flex flex-wrap gap-3 mb-8">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-              viewMode === 'grid'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
-            }`}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #F7F9FC 0%, #E8F0FE 100%)',
+        pt: { xs: 10, sm: 12 },
+        pb: { xs: 10, md: 4 },
+      }}
+    >
+      <Container maxWidth="xl">
+        {/* Hero Section */}
+        <Box
+          component={motion.div}
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          sx={{ mb: 6, textAlign: 'center' }}
+        >
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              mb: 2,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
           >
-            <Grid size={20} />
-            <span className="hidden sm:inline">Vista de Cuadrícula</span>
-            <span className="sm:hidden">Cuadrícula</span>
-          </button>
-          <button
-            onClick={() => setViewMode('calendar')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
-              viewMode === 'calendar'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
-            }`}
-          >
-            <Calendar size={20} />
-            <span className="hidden sm:inline">Vista de Calendario</span>
-            <span className="sm:hidden">Calendario</span>
-          </button>
-        </div>
+            Eventos Literarios
+          </Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
+            Conecta con otros amantes de la lectura y participa en experiencias únicas
+          </Typography>
+        </Box>
 
-        {/* Grid View */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+        {/* Search and Filters */}
+        <Box
+          component={motion.div}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          sx={{
+            mb: 4,
+            p: 3,
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: 4,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+          }}
+        >
+          <Stack spacing={3}>
+            {/* Search Bar */}
+            <TextField
+              fullWidth
+              placeholder="Buscar eventos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  borderRadius: 3,
+                  backgroundColor: 'background.paper',
+                  '& fieldset': { border: 'none' },
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                },
+              }}
+            />
+
+            {/* Categories and View Toggle */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {categories.map((category) => (
+                  <Chip
+                    key={category}
+                    label={category}
+                    onClick={() => setSelectedCategory(category)}
+                    sx={{
+                      fontWeight: 600,
+                      transition: 'all 0.3s ease',
+                      ...(selectedCategory === category
+                        ? {
+                            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                            color: 'white',
+                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                          }
+                        : {
+                            backgroundColor: 'white',
+                            '&:hover': {
+                              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                              transform: 'translateY(-2px)',
+                            },
+                          }),
+                    }}
+                  />
+                ))}
+              </Stack>
+
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={(e, newMode) => newMode && setViewMode(newMode)}
+                sx={{
+                  backgroundColor: 'white',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  '& .MuiToggleButton-root': {
+                    border: 'none',
+                    '&.Mui-selected': {
+                      background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+                      },
+                    },
+                  },
+                }}
               >
-                <div className="relative overflow-hidden h-48">
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-indigo-600">
-                    {event.category}
-                  </div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors">
-                    {event.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {event.description}
-                  </p>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={16} className="text-indigo-500" />
-                      <span>{new Date(event.date).toLocaleDateString('es-ES', { 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric' 
-                      })}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={16} className="text-indigo-500" />
-                      <span>{event.time}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin size={16} className="text-indigo-500" />
-                      <span>{event.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users size={16} className="text-indigo-500" />
-                      <span>{event.attendees} asistentes</span>
-                    </div>
-                  </div>
-                  <button className="mt-6 w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 transition-colors">
-                    Registrarse
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                <ToggleButton value="grid">
+                  <GridViewIcon sx={{ mr: 1 }} />
+                  Cuadrícula
+                </ToggleButton>
+                <ToggleButton value="calendar">
+                  <CalendarViewIcon sx={{ mr: 1 }} />
+                  Calendario
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </Stack>
+        </Box>
 
-        {/* Calendar View */}
-        {viewMode === 'calendar' && (
-          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8">
-            {/* Calendar Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                {monthNames[month]} {year}
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => navigateMonth(-1)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        {/* Events Grid */}
+        {viewMode === 'grid' && (
+          <Grid container spacing={3}>
+            {filteredEvents.map((event, index) => (
+              <Grid item xs={12} sm={6} lg={4} key={event.id}>
+                <Card
+                  component={motion.div}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-12px)',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                    },
+                  }}
                 >
-                  <ChevronLeft size={24} />
-                </button>
-                <button
-                  onClick={() => navigateMonth(1)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2 sm:gap-4">
-              {/* Day Headers */}
-              {dayNames.map((day) => (
-                <div
-                  key={day}
-                  className="text-center font-semibold text-gray-700 py-2 text-xs sm:text-base"
-                >
-                  {day}
-                </div>
-              ))}
-
-              {/* Empty cells for days before month starts */}
-              {[...Array(startingDayOfWeek)].map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square" />
-              ))}
-
-              {/* Calendar Days */}
-              {[...Array(daysInMonth)].map((_, index) => {
-                const day = index + 1;
-                const dayEvents = getEventsForDay(day);
-                const hasEvents = dayEvents.length > 0;
-
-                return (
-                  <div
-                    key={day}
-                    className={`aspect-square border-2 rounded-xl p-1 sm:p-2 ${
-                      hasEvents
-                        ? 'border-indigo-300 bg-indigo-50'
-                        : 'border-gray-200 bg-white'
-                    } hover:shadow-md transition-all`}
-                  >
-                    <div className="h-full flex flex-col">
-                      <div
-                        className={`text-xs sm:text-sm font-semibold mb-1 ${
-                          hasEvents ? 'text-indigo-600' : 'text-gray-700'
-                        }`}
+                  {/* Image */}
+                  <Box sx={{ position: 'relative', paddingTop: '60%', overflow: 'hidden' }}>
+                    <CardMedia
+                      component="img"
+                      image={event.image}
+                      alt={event.title}
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.6s ease',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                        },
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        left: 16,
+                      }}
+                    >
+                      <Chip
+                        label={event.category}
+                        sx={{
+                          background: 'rgba(255, 255, 255, 0.95)',
+                          backdropFilter: 'blur(12px)',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        }}
+                      />
+                    </Box>
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 16,
+                        right: 16,
+                        display: 'flex',
+                        gap: 1,
+                      }}
+                    >
+                      <IconButton
+                        onClick={() => toggleFavorite(event.id)}
+                        sx={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          backdropFilter: 'blur(12px)',
+                          '&:hover': {
+                            backgroundColor: 'white',
+                            transform: 'scale(1.1)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
                       >
-                        {day}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        {dayEvents.map((event, idx) => (
-                          <div
-                            key={event.id}
-                            className="bg-indigo-600 text-white text-xs rounded px-1 py-0.5 mb-1 truncate"
-                            title={event.title}
-                          >
-                            {event.title}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        {favorites.includes(event.id) ? (
+                          <FavoriteIcon sx={{ color: '#3B82F6' }} />
+                        ) : (
+                          <FavoriteBorderIcon />
+                        )}
+                      </IconButton>
+                      <IconButton
+                        sx={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          backdropFilter: 'blur(12px)',
+                          '&:hover': {
+                            backgroundColor: 'white',
+                            transform: 'scale(1.1)',
+                          },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <ShareIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
 
-            {/* Events Legend */}
-            <div className="mt-8 space-y-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                Eventos del mes
-              </h3>
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <img
-                    src={event.image}
-                    alt={event.title}
-                    className="w-full sm:w-24 h-24 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                      <h4 className="font-bold text-gray-900">{event.title}</h4>
-                      <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-medium">
-                        {event.category}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {new Date(event.date).toLocaleDateString('es-ES', { 
-                          day: 'numeric', 
-                          month: 'short' 
-                        })}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {event.time}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        {event.location}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                  {/* Content */}
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {event.title}
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {event.description}
+                    </Typography>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Stack spacing={1.5}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(event.date).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'long',
+                          })}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TimeIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {event.time} hrs
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <LocationIcon sx={{ fontSize: 18, color: 'error.main' }} />
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.location}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <GroupIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {event.attendees}/{event.maxAttendees} asistentes
+                        </Typography>
+                      </Box>
+                    </Stack>
+
+                    {/* Progress Bar */}
+                    <Box sx={{ mt: 2 }}>
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: 6,
+                          backgroundColor: 'rgba(0,0,0,0.08)',
+                          borderRadius: 3,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: `${getAttendancePercentage(event.attendees, event.maxAttendees)}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%)',
+                            transition: 'width 0.6s ease',
+                          }}
+                        />
+                      </Box>
+                    </Box>
+
+                    {/* Host Info */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 1.5 }}>
+                      <Avatar
+                        src={event.host.avatar}
+                        alt={event.host.name}
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          border: '2px solid white',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        }}
+                      />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Organizado por
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {event.host.name}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Button */}
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      sx={{
+                        mt: 2,
+                        py: 1.5,
+                        borderRadius: 3,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+                          boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
+                          transform: 'translateY(-2px)',
+                        },
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      Unirme al Evento
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         )}
-      </div>
-    </div>
+
+        {/* Calendar View Placeholder */}
+        {viewMode === 'calendar' && (
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 10,
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(12px)',
+              borderRadius: 4,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            }}
+          >
+            <CalendarViewIcon sx={{ fontSize: 80, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Vista de Calendario
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Próximamente: Visualiza todos los eventos en un calendario interactivo
+            </Typography>
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 };
 

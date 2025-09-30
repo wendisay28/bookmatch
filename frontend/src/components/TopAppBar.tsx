@@ -42,36 +42,66 @@ const TopAppBar = () => {
   const currentRoute = routes.findIndex(route => route.path === location.pathname);
 
   return (
-    <AppBar 
-      position="fixed" 
-      color="default" 
+    <AppBar
+      position="fixed"
+      color="default"
       elevation={0}
       sx={{
-        borderBottom: `1px solid ${theme.palette.divider}`,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
         zIndex: theme.zIndex.drawer + 1,
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
+      <Toolbar sx={{ justifyContent: 'space-between', minHeight: { xs: 64, sm: 72 } }}>
         {/* Left side - Logo */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
             cursor: 'pointer',
+            transition: 'transform 0.2s ease',
             '&:hover': {
-              opacity: 0.8
+              transform: 'scale(1.05)',
             }
-          }} 
+          }}
           onClick={() => navigate('/')}
         >
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 2,
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+            }}
+          >
+            <Typography
+              sx={{
+                fontWeight: 900,
+                fontSize: '1.25rem',
+                color: 'white',
+              }}
+            >
+              B
+            </Typography>
+          </Box>
           <Typography
             variant="h6"
             noWrap
             component="div"
             sx={{
-              fontWeight: 700,
-              color: theme.palette.primary.main,
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
               display: { xs: 'none', sm: 'block' },
+              fontSize: '1.5rem',
             }}
           >
             BookMatch
@@ -117,30 +147,82 @@ const TopAppBar = () => {
             ))}
           </Tabs>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-            <IconButton color="inherit" onClick={() => {}}>
-              <Badge badgeContent={4} color="error">
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, gap: 1 }}>
+            <IconButton
+              sx={{
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  color: 'primary.main',
+                  transform: 'scale(1.1)',
+                },
+              }}
+              onClick={() => {}}
+            >
+              <Badge
+                badgeContent={4}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px',
+                    fontWeight: 700,
+                  },
+                }}
+              >
                 <NotificationsIcon />
               </Badge>
             </IconButton>
-            <IconButton color="inherit" onClick={() => {}} sx={{ ml: 1 }}>
-              <Badge badgeContent={2} color="error">
+            <IconButton
+              sx={{
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  color: 'secondary.main',
+                  transform: 'scale(1.1)',
+                },
+              }}
+              onClick={() => {}}
+            >
+              <Badge
+                badgeContent={2}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px',
+                    fontWeight: 700,
+                  },
+                }}
+              >
                 <MessagesIcon />
               </Badge>
             </IconButton>
             <IconButton
-              color="inherit"
               onClick={() => navigate('/profile')}
-              sx={{ ml: 1 }}
+              sx={{
+                ml: 1,
+                transition: 'transform 0.2s ease',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                },
+              }}
             >
-              <Avatar 
-                alt={user?.name || 'Usuario'} 
-                src={user?.avatar} 
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  bgcolor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText
+              <Avatar
+                alt={user?.name || 'Usuario'}
+                src={user?.avatar}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+                  color: 'white',
+                  fontWeight: 700,
+                  border: '2px solid white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 }}
               >
                 {user?.name?.[0] || 'U'}
