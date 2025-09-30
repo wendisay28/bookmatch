@@ -1,36 +1,5 @@
 {
-  "name": "bookmatch",
-  "version": "1.0.0",
-  "description": "Plataforma de recomendación de libros para el hackathon",
-  "main": "index.js",
-  "scripts": {
-    "start": "node server/index.js",
-    "dev": "nodemon server/index.js",
-    "client": "cd client && npm start",
-    "dev:fullstack": "concurrently \"npm run dev\" \"npm run client\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tuusuario/bookmatch.git"
-  },
-  "keywords": [
-    "books",
-    "recommendation",
-    "hackathon",
-    "reading"
-  ],
-  "author": "Tu Nombre",
-  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^7.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "jsonwebtoken": "^9.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.20",
-    "concurrently": "^8.0.1"
+    "@supabase/supabase-js": "^2.58.0"
   }
 }
