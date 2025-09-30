@@ -1,214 +1,157 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import AIRecommendationModal from '../components/home/AIRecommendationModal';
-import HeroCarousel from '../components/home/HeroCarousel';
-import TopBooksSection from '../components/home/TopBooksSection';
-import TopProfilesSection from '../components/home/TopProfilesSection';
-import CategoryCarousel from '../components/home/CategoryCarousel';
+import { Box, Divider, Typography } from '@mui/material';
 import LeftSidebar from '../components/home/LeftSidebar';
-import RightSidebar from '../components/home/RightSidebar';
-
-// Mock data
-const categoryCarousels = [
-  {
-    title: 'Clásicos que vuelven',
-    books: [
-      { title: 'Don Quijote', author: 'Cervantes', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80' },
-      { title: 'Orgullo y Prejuicio', author: 'Jane Austen', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-      { title: 'Moby Dick', author: 'Herman Melville', cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80' },
-      { title: 'La Odisea', author: 'Homero', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80' },
-      { title: 'Crimen y Castigo', author: 'Dostoievski', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-    ],
-  },
-  {
-    title: 'Tendencias en tu ciudad',
-    books: [
-      { title: 'El Silencio', author: 'Don DeLillo', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-      { title: 'Klara y el Sol', author: 'Kazuo Ishiguro', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80' },
-      { title: 'La Hija Única', author: 'Guadalupe Nettel', cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80' },
-      { title: 'Hamnet', author: 'Maggie O\'Farrell', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-      { title: 'El Infinito en un Junco', author: 'Irene Vallejo', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80' },
-    ],
-  },
-  {
-    title: 'Novedades recomendadas',
-    books: [
-      { title: 'Los Olvidados', author: 'Emiliano Monge', cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80' },
-      { title: 'El Mapa Fantasma', author: 'Steven Johnson', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-      { title: 'Biografía del Silencio', author: 'Pablo d\'Ors', cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&q=80' },
-      { title: 'Cultish', author: 'Amanda Montell', cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=300&q=80' },
-      { title: 'El Baile', author: 'Irene Nemirovsky', cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&q=80' },
-    ],
-  },
-];
+import HeroCarousel from '../components/home/HeroCarousel';
 
 const HomePage = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAIRecommendations, setShowAIRecommendations] = useState(false);
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* AI Recommendations Modal */}
-      <AIRecommendationModal
-        open={showAIRecommendations}
-        onClose={() => setShowAIRecommendations(false)}
-      />
+    <Box sx={{ 
+      display: 'flex', 
+      pt: '64px',
+      minHeight: 'calc(100vh - 64px)',
+      bgcolor: 'background.default',
+      boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
+      width: '100vw'
+    }}>
+      {/* Línea de referencia horizontal */}
+      <Box sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '1px',
+        background: 'repeating-linear-gradient(to right, #000 0, #000 10px, transparent 10px, transparent 20px)',
+        zIndex: 1000,
+        pointerEvents: 'none'
+      }} />
 
-      {/* Custom Header */}
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 64,
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          px: 3,
-          zIndex: 1200,
-        }}
-      >
-        {/* Logo */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            cursor: 'pointer',
-            mr: 4,
-          }}
-          onClick={() => navigate('/')}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: 1.5,
-            }}
-          >
-            <Typography
-              sx={{
-                fontWeight: 900,
-                fontSize: '1.25rem',
-                color: 'white',
-              }}
-            >
-              B
-            </Typography>
-          </Box>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 800,
-              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            BookMatch
-          </Typography>
-        </Box>
-
-        {/* Search Bar */}
-        <TextField
-          placeholder="Buscar libros, autores, comunidades..."
-          size="small"
-          sx={{
-            flex: 1,
-            maxWidth: 600,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 50,
-              bgcolor: 'background.default',
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        {/* Subscribe/Registered Button */}
-        <Button
-          variant={isSubscribed ? 'outlined' : 'contained'}
-          sx={{
-            ml: 3,
-            borderRadius: 50,
-            px: 3,
-            fontWeight: 700,
-            textTransform: 'none',
-          }}
-          onClick={() => setIsSubscribed(!isSubscribed)}
-        >
-          {isSubscribed ? 'Suscrito' : 'Registrarse'}
-        </Button>
-      </Box>
-
-      {/* Main Layout - 3 Columns */}
-      <Box sx={{ display: 'flex', pt: '64px' }}>
-        {/* Left Sidebar */}
+      {/* Left Sidebar */}
+      <Box sx={{
+        position: 'fixed',
+        left: 0,
+        top: '64px',
+        bottom: 0,
+        zIndex: 100,
+        width: sidebarCollapsed ? '64px' : '180px',
+        transition: 'width 0.3s ease',
+        backgroundColor: 'background.paper',
+        boxShadow: 1,
+        overflow: 'hidden'
+      }}>
         <LeftSidebar
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onOpenAI={() => setShowAIRecommendations(true)}
         />
+      </Box>
 
-        {/* Main Content Area - Dynamic width based on sidebar */}
-        <Box
-          sx={{
-            ml: sidebarCollapsed ? '70px' : '20%',
-            width: sidebarCollapsed ? 'calc(100% - 70px)' : '80%',
-            transition: 'margin-left 0.3s ease, width 0.3s ease',
-            pt: 1,
-          }}
-        >
-          {/* Hero Carousel - Full width spanning central + right sidebar */}
-          <Box sx={{ mb: 2.5, px: 3 }}>
+      {/* Contenedor Principal con borde rojo - Aún más angosto */}
+      <Box sx={{
+        position: 'fixed',
+        left: { xs: '96px', sm: sidebarCollapsed ? '96px' : '196px' },
+        right: '40px',
+        top: '64px',
+        bottom: 0,
+        overflowY: 'auto',
+        transition: 'left 0.3s ease, right 0.3s ease',
+        padding: '16px 0',
+        boxSizing: 'border-box',
+        border: '2px solid red',
+        backgroundColor: 'background.default',
+        width: 'auto'
+      }}>
+        {/* Contenedor del carrusel */}
+        <Box sx={{ 
+          width: '100%',
+          maxWidth: '100%',
+          margin: '0 auto',
+          position: 'relative',
+          border: '2px solid orange',
+          mb: 3,
+          overflow: 'hidden',
+          px: 2
+        }}>
+          <Box sx={{
+            width: '100%',
+            position: 'relative',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'rgba(0,0,0,0.1)',
+              zIndex: 1
+            }
+          }}>
             <HeroCarousel />
           </Box>
+        </Box>
 
-          {/* Central (60%) + Right Sidebar (20%) */}
-          <Box sx={{ display: 'flex', gap: 3, px: 3 }}>
-            {/* Central Feed - 75% of remaining space */}
-            <Box sx={{ flex: 3 }}>
-              {/* Top Books */}
-              <TopBooksSection />
+        {/* Línea divisoria */}
+        <Divider sx={{ my: 3, borderColor: 'divider' }} />
 
-              {/* Top Profiles */}
-              <TopProfilesSection />
+        {/* Contenedor principal de dos columnas */}
+        <Box sx={{ 
+          display: 'flex',
+          gap: 3,
+          width: '100%',
+          maxWidth: '100%',
+          margin: '0 auto',
+          px: 2
+        }}>
+          {/* Columna izquierda - Feed principal (80%) */}
+          <Box sx={{ 
+            flex: '0 0 calc(80% - 12px)',
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            p: 2,
+            boxShadow: 1
+          }}>
+            <Typography variant="h6" gutterBottom>Feed Principal</Typography>
+            <Box sx={{ height: '800px', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1 }}>
+              <Typography color="text.secondary">Contenido del feed irá aquí</Typography>
+            </Box>
+          </Box>
 
-              {/* Category Carousels */}
-              {categoryCarousels.map((category, index) => (
-                <CategoryCarousel key={index} title={category.title} books={category.books} />
+          {/* Columna derecha - Sidebar (20%) */}
+          <Box sx={{ 
+            flex: '0 0 calc(20% - 12px)',
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            p: 2,
+            boxShadow: 1,
+            position: 'sticky',
+            top: '16px',
+            alignSelf: 'flex-start'
+          }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600 }}>Tendencias</Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              gap: 2,
+              mt: 2
+            }}>
+              {[1, 2, 3].map((item) => (
+                <Box key={item} sx={{ 
+                  p: 1.5, 
+                  borderRadius: 1,
+                  bgcolor: 'rgba(0,0,0,0.02)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0,0,0,0.04)'
+                  }
+                }}>
+                  <Typography variant="body2" fontWeight={500}>Tendencia #{item}</Typography>
+                  <Typography variant="caption" color="text.secondary">Descripción de la tendencia</Typography>
+                </Box>
               ))}
             </Box>
-
-            {/* Right Sidebar - 25% of remaining space */}
-            <RightSidebar />
           </Box>
         </Box>
       </Box>
