@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  IconButton, 
-  Badge, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Badge,
   Avatar,
   Box,
   useTheme,
@@ -20,23 +20,29 @@ import {
   Search as SearchIcon,
   SwapHoriz as MashIcon,
   Event as EventIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import { useMenu } from '../context/MenuContext';
 
-const TopAppBar = () => {
+interface TopAppBarProps {
+  onMenuClick?: () => void;
+}
+
+const TopAppBar: React.FC<TopAppBarProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user } = useAuth();
+  const { setMobileMenuOpen } = useMenu();
 
   const routes = [
     { path: '/', label: 'Inicio', icon: <HomeIcon /> },
     { path: '/explore', label: 'Explorar', icon: <SearchIcon /> },
-    { path: '/mash', label: 'MASH', icon: <MashIcon /> },
+    { path: '/mash', label: 'Match', icon: <MashIcon /> },
     { path: '/events', label: 'Eventos', icon: <EventIcon /> },
-    { path: '/profile', label: 'Perfil', icon: <PersonIcon /> },
   ];
 
   const currentRoute = routes.findIndex(route => route.path === location.pathname);
@@ -147,34 +153,7 @@ const TopAppBar = () => {
             ))}
           </Tabs>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, gap: 1 }}>
-            <IconButton
-              sx={{
-                color: 'text.secondary',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  color: 'primary.main',
-                  transform: 'scale(1.1)',
-                },
-              }}
-              onClick={() => {}}
-            >
-              <Badge
-                badgeContent={4}
-                sx={{
-                  '& .MuiBadge-badge': {
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-                    fontSize: '0.65rem',
-                    minWidth: '18px',
-                    height: '18px',
-                    fontWeight: 700,
-                  },
-                }}
-              >
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
             <IconButton
               sx={{
                 color: 'text.secondary',
@@ -203,31 +182,79 @@ const TopAppBar = () => {
               </Badge>
             </IconButton>
             <IconButton
-              onClick={() => navigate('/profile')}
               sx={{
-                ml: 1,
-                transition: 'transform 0.2s ease',
+                color: 'text.secondary',
+                transition: 'all 0.2s ease',
                 '&:hover': {
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  color: 'primary.main',
                   transform: 'scale(1.1)',
                 },
               }}
+              onClick={() => {}}
             >
-              <Avatar
-                alt={user?.name || 'Usuario'}
-                src={user?.avatar}
+              <Badge
+                badgeContent={4}
                 sx={{
-                  width: 36,
-                  height: 36,
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-                  color: 'white',
-                  fontWeight: 700,
-                  border: '2px solid white',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  '& .MuiBadge-badge': {
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px',
+                    fontWeight: 700,
+                  },
                 }}
               >
-                {user?.name?.[0] || 'U'}
-              </Avatar>
+                <NotificationsIcon />
+              </Badge>
             </IconButton>
+
+            {/* Mobile Menu Button - Only show on mobile and on HomePage */}
+            {isMobile && location.pathname === '/' && (
+              <IconButton
+                onClick={() => setMobileMenuOpen(true)}
+                sx={{
+                  transition: 'all 0.2s ease',
+                  color: 'text.secondary',
+                  '&:hover': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    color: 'primary.main',
+                  },
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+
+            {/* Desktop Avatar - Only show on desktop */}
+            {!isMobile && (
+              <IconButton
+                onClick={() => navigate('/profile')}
+                sx={{
+                  ml: 2,
+                  transition: 'transform 0.2s ease',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                  },
+                }}
+              >
+                <Avatar
+                  alt={user?.name || 'Usuario'}
+                  src={user?.avatar}
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
+                    color: 'white',
+                    fontWeight: 700,
+                    border: '2px solid white',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  {user?.name?.[0] || 'U'}
+                </Avatar>
+              </IconButton>
+            )}
           </Box>
         </Box>
       </Toolbar>

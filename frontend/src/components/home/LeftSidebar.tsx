@@ -24,15 +24,18 @@ import {
   Help as HelpIcon,
   Groups as GroupsIcon,
   KeyboardDoubleArrowLeft as CollapseIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
 interface LeftSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onOpenAI: () => void;
+  isMobile?: boolean;
+  onClose?: () => void;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ collapsed, onToggleCollapse, onOpenAI }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ collapsed, onToggleCollapse, onOpenAI, isMobile = false, onClose }) => {
   const navigate = useNavigate();
 
   return (
@@ -45,50 +48,56 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ collapsed, onToggleCollapse, 
         bgcolor: 'background.paper',
         borderRight: '1px solid',
         borderColor: 'divider',
-        p: 1,
+        p: isMobile ? 2 : 1,
+        pt: isMobile ? 10 : 1,
         transition: 'width 0.3s ease',
       }}
     >
-      {/* Toggle Button */}
-      <Box sx={{ display: 'flex', justifyContent: collapsed ? 'center' : 'flex-end', mb: 1 }}>
+      {/* Toggle Button - Desktop: collapse, Mobile: close */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, mt: isMobile ? -4 : 0 }}>
         <IconButton
-          onClick={onToggleCollapse}
-          size="small"
+          onClick={isMobile ? onClose : onToggleCollapse}
+          size={isMobile ? "medium" : "small"}
           sx={{
             transition: 'transform 0.3s ease',
             transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+            bgcolor: isMobile ? 'rgba(0,0,0,0.05)' : 'transparent',
+            '&:hover': {
+              bgcolor: isMobile ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.04)',
+            }
           }}
         >
-          <CollapseIcon />
+          {isMobile ? <CloseIcon /> : <CollapseIcon />}
         </IconButton>
       </Box>
 
-      <List>
-        <ListItemButton 
-          onClick={() => navigate('/')} 
-          sx={{ 
+      <List sx={{ py: 0 }}>
+        <ListItemButton
+          sx={{
             justifyContent: collapsed ? 'center' : 'flex-start',
-            '& .MuiSvgIcon-root': { fontSize: '1.25rem' } 
+            '& .MuiSvgIcon-root': { fontSize: isMobile ? '1.5rem' : '1.25rem' },
+            py: isMobile ? 1.5 : (collapsed ? 1.5 : 1),
           }}
         >
-          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36, mr: collapsed ? 0 : 1 }}>
-            <HomeIcon color="primary" />
+          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : (isMobile ? 40 : 36), mr: collapsed ? 0 : (isMobile ? 1.5 : 1) }}>
+            <TrendingUpIcon color="primary" />
           </ListItemIcon>
-          {!collapsed && <ListItemText primary="Inicio" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />}
+          {!collapsed && <ListItemText primary="Popular" primaryTypographyProps={{ fontWeight: 600, fontSize: isMobile ? '1rem' : '0.875rem' }} />}
         </ListItemButton>
-        
-        <ListItemButton 
-          sx={{ 
+
+        <ListItemButton
+          sx={{
             justifyContent: collapsed ? 'center' : 'flex-start',
-            '& .MuiSvgIcon-root': { fontSize: '1.25rem' } 
+            '& .MuiSvgIcon-root': { fontSize: isMobile ? '1.5rem' : '1.25rem' },
+            py: isMobile ? 1.5 : (collapsed ? 1.5 : 1),
           }}
         >
-          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36, mr: collapsed ? 0 : 1 }}>
-            <TrendingUpIcon />
+          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : (isMobile ? 40 : 36), mr: collapsed ? 0 : (isMobile ? 1.5 : 1) }}>
+            <GroupsIcon />
           </ListItemIcon>
-          {!collapsed && <ListItemText primary="Popular" primaryTypographyProps={{ fontSize: '0.875rem' }} />}
+          {!collapsed && <ListItemText primary="Comunidad" primaryTypographyProps={{ fontSize: isMobile ? '1rem' : '0.875rem' }} />}
         </ListItemButton>
-        
+
         <ListItemButton
           onClick={onOpenAI}
           sx={{
@@ -97,42 +106,44 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ collapsed, onToggleCollapse, 
             '&:hover': {
               background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
             },
-            '& .MuiSvgIcon-root': { fontSize: '1.25rem' }
+            '& .MuiSvgIcon-root': { fontSize: isMobile ? '1.5rem' : '1.25rem' },
+            py: isMobile ? 1.5 : (collapsed ? 1.5 : 1),
+            borderRadius: 1,
           }}
         >
-          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36, mr: collapsed ? 0 : 1 }}>
+          <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : (isMobile ? 40 : 36), mr: collapsed ? 0 : (isMobile ? 1.5 : 1) }}>
             <MagicIcon sx={{ color: 'primary.main' }} />
           </ListItemIcon>
           {!collapsed && (
             <ListItemText
               primary="IA Mágica"
               secondary="Recomendaciones"
-              primaryTypographyProps={{ fontWeight: 700, fontSize: '0.875rem' }}
-              secondaryTypographyProps={{ fontSize: '0.7rem', lineHeight: 1.2 }}
+              primaryTypographyProps={{ fontWeight: 700, fontSize: isMobile ? '1rem' : '0.875rem' }}
+              secondaryTypographyProps={{ fontSize: isMobile ? '0.8rem' : '0.7rem', lineHeight: 1.2 }}
             />
           )}
         </ListItemButton>
       </List>
 
-      <Divider sx={{ my: 1.5 }} />
+      <Divider sx={{ my: isMobile ? 2.5 : 1.5 }} />
 
       {!collapsed && (
-        <Typography 
-          variant="caption" 
-          color="text.secondary" 
-          sx={{ 
-            px: 1, 
-            fontWeight: 700, 
-            fontSize: '0.7rem', 
-            display: 'block', 
-            mb: 0.5 
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            px: isMobile ? 1.5 : 1,
+            fontWeight: 700,
+            fontSize: isMobile ? '0.75rem' : '0.7rem',
+            display: 'block',
+            mb: isMobile ? 1 : 0.5
           }}
         >
           CATEGORÍAS
         </Typography>
       )}
-      
-      <List dense>
+
+      <List dense={!isMobile} sx={{ py: 0 }}>
         {[
           { icon: <MenuBookIcon fontSize="small" />, text: 'Ficción' },
           { icon: <MenuBookIcon fontSize="small" />, text: 'No ficción' },
@@ -142,64 +153,66 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ collapsed, onToggleCollapse, 
           { icon: <HistoryIcon fontSize="small" />, text: 'Historia' },
           { icon: <ExpandMoreIcon fontSize="small" />, text: 'Ver más' },
         ].map((item, index) => (
-          <ListItemButton 
+          <ListItemButton
             key={index}
-            sx={{ 
+            sx={{
               justifyContent: collapsed ? 'center' : 'flex-start',
-              '& .MuiSvgIcon-root': { fontSize: '1.25rem' } 
+              '& .MuiSvgIcon-root': { fontSize: isMobile ? '1.35rem' : '1.25rem' },
+              py: isMobile ? 1.25 : (collapsed ? 1.25 : 0.75),
             }}
           >
-            <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36, mr: collapsed ? 0 : 1 }}>
+            <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : (isMobile ? 40 : 36), mr: collapsed ? 0 : (isMobile ? 1.5 : 1) }}>
               {item.icon}
             </ListItemIcon>
             {!collapsed && (
-              <ListItemText 
-                primary={item.text} 
-                primaryTypographyProps={{ fontSize: '0.8125rem' }} 
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{ fontSize: isMobile ? '0.95rem' : '0.8125rem' }}
               />
             )}
           </ListItemButton>
         ))}
       </List>
 
-      <Divider sx={{ my: 1.5 }} />
+      <Divider sx={{ my: isMobile ? 2.5 : 1.5 }} />
 
       {!collapsed && (
-        <Typography 
-          variant="caption" 
-          color="text.secondary" 
-          sx={{ 
-            px: 1, 
-            fontWeight: 700, 
-            fontSize: '0.7rem', 
-            display: 'block', 
-            mb: 0.5 
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{
+            px: isMobile ? 1.5 : 1,
+            fontWeight: 700,
+            fontSize: isMobile ? '0.75rem' : '0.7rem',
+            display: 'block',
+            mb: isMobile ? 1 : 0.5
           }}
         >
           RECURSOS
         </Typography>
       )}
-      
-      <List dense>
+
+      <List dense={!isMobile} sx={{ py: 0 }}>
         {[
           { icon: <InfoIcon fontSize="small" />, text: 'Sobre Bookmatch' },
           { icon: <HelpIcon fontSize="small" />, text: 'Ayuda' },
           { icon: <GroupsIcon fontSize="small" />, text: 'Comunidad' },
         ].map((item, index) => (
-          <ListItemButton 
+          <ListItemButton
             key={index}
-            sx={{ 
+            sx={{
               justifyContent: collapsed ? 'center' : 'flex-start',
-              '& .MuiSvgIcon-root': { fontSize: '1.25rem' } 
+              '& .MuiSvgIcon-root': { fontSize: isMobile ? '1.35rem' : '1.25rem' },
+              py: isMobile ? 1.25 : (collapsed ? 1.25 : 0.75),
             }}
           >
-            <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : 36, mr: collapsed ? 0 : 1 }}>
+            <ListItemIcon sx={{ minWidth: collapsed ? 'auto' : (isMobile ? 40 : 36), mr: collapsed ? 0 : (isMobile ? 1.5 : 1) }}>
               {item.icon}
             </ListItemIcon>
             {!collapsed && (
-              <ListItemText 
-                primary={item.text} 
-                primaryTypographyProps={{ fontSize: '0.8125rem' }} 
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{ fontSize: isMobile ? '0.95rem' : '0.8125rem' }}
               />
             )}
           </ListItemButton>

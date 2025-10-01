@@ -1,5 +1,5 @@
 import React from 'react';
-import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
+import { BottomNavigation, BottomNavigationAction, Paper, useTheme, useMediaQuery } from '@mui/material';
 import {
   Home as HomeIcon,
   Search as SearchIcon,
@@ -12,6 +12,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [value, setValue] = React.useState(0);
 
   React.useEffect(() => {
@@ -86,7 +88,7 @@ const BottomNav = () => {
           onClick={() => navigate('/explore')}
         />
         <BottomNavigationAction
-          label="MASH"
+          label="Match"
           icon={<MashIcon />}
           onClick={() => navigate('/mash')}
           sx={{

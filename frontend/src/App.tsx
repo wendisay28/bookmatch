@@ -10,7 +10,7 @@ import theme from './theme/theme';
 
 // Pages
 import HomePage from './pages/HomePage';
-import ExplorePage from './pages/ExplorePage';
+import LibraryPage from './pages/LibraryPage';
 import MashPage from './pages/MashPage';
 import EventsPage from './pages/EventsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -21,6 +21,7 @@ import TopAppBar from './components/TopAppBar';
 
 // Context
 import { AuthProvider } from './context/AuthContext';
+import { MenuProvider } from './context/MenuContext';
 
 // Layout component to handle different layouts based on route
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -28,18 +29,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isAuthPage = ['/login', '/register'].includes(location.pathname);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', overflowX: 'hidden' }}>
       {!isAuthPage && <TopAppBar />}
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
-          pb: { xs: 8, md: 4 }, // Padding bottom solo en móviles
-          pt: { xs: 7, sm: 8 }, // Padding para el app bar superior
-          maxWidth: 1200,
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          pb: location.pathname === '/' ? 0 : { xs: 8, md: 4 },
+          pt: location.pathname === '/' ? 0 : { xs: 7, sm: 8 },
+          maxWidth: location.pathname === '/' ? '100%' : 1200,
           width: '100%',
           mx: 'auto',
-          px: { xs: 2, sm: 3, md: 4 }
+          px: location.pathname === '/' ? 0 : { xs: 2, sm: 3, md: 4 },
+          overflowX: 'hidden'
         }}
       >
         {children}
@@ -51,28 +53,30 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
+    <Router>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
         <AuthProvider>
-          <SnackbarProvider 
-            maxSnack={3} 
-            anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            autoHideDuration={3000}
-          >
-            <Layout>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/mash" element={<MashPage />} />
-                <Route path="/events" element={<EventsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-              </Routes>
-            </Layout>
-          </SnackbarProvider>
+          <MenuProvider>
+            <SnackbarProvider
+              maxSnack={3}
+              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+              autoHideDuration={3000}
+            >
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/explore" element={<LibraryPage />} />
+                  <Route path="/mash" element={<MashPage />} />
+                  <Route path="/events" element={<EventsPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                </Routes>
+              </Layout>
+            </SnackbarProvider>
+          </MenuProvider>
         </AuthProvider>
-      </Router>
-    </ThemeProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 

@@ -73,6 +73,7 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 800,
+          height: '85vh',
           maxHeight: '85vh',
           overflowY: 'auto',
           p: 4,
@@ -84,7 +85,7 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
           border: '1px solid rgba(59, 130, 246, 0.1)',
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <MagicIcon sx={{ color: 'primary.main', fontSize: 32 }} />
             <Typography variant="h5" fontWeight={800}>
@@ -98,26 +99,27 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
 
         {/* Step 1: Mood Selection */}
         {aiStep === 0 && (
-          <Box>
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h5" fontWeight={700} gutterBottom>
               ¿Cómo te sientes hoy?
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               Selecciona tu estado de ánimo y te recomendaré el libro perfecto
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, gridAutoRows: '180px' }}>
               {[
-                { id: 'inspirado', label: 'Inspirado', desc: 'Quiero motivarme', icon: <InspireIcon sx={{ fontSize: 40 }} />, color: '#F59E0B' },
-                { id: 'curioso', label: 'Curioso', desc: 'Quiero aprender algo nuevo', icon: <LearnIcon sx={{ fontSize: 40 }} />, color: '#3B82F6' },
-                { id: 'relajado', label: 'Relajado', desc: 'Quiero disfrutar una buena historia', icon: <RelaxIcon sx={{ fontSize: 40 }} />, color: '#10B981' },
-                { id: 'aventurero', label: 'Aventurero', desc: 'Quiero una aventura épica', icon: <AdventureIcon sx={{ fontSize: 40 }} />, color: '#EF4444' },
-                { id: 'reflexivo', label: 'Reflexivo', desc: 'Quiero pensar profundamente', icon: <ReflectIcon sx={{ fontSize: 40 }} />, color: '#8B5CF6' },
+                { id: 'inspirado', label: 'Inspirado', desc: 'Quiero motivarme', icon: <InspireIcon sx={{ fontSize: 36 }} />, color: '#F59E0B' },
+                { id: 'curioso', label: 'Curioso', desc: 'Aprender algo nuevo', icon: <LearnIcon sx={{ fontSize: 36 }} />, color: '#3B82F6' },
+                { id: 'relajado', label: 'Relajado', desc: 'Disfrutar una historia', icon: <RelaxIcon sx={{ fontSize: 36 }} />, color: '#10B981' },
+                { id: 'aventurero', label: 'Aventurero', desc: 'Una aventura épica', icon: <AdventureIcon sx={{ fontSize: 36 }} />, color: '#EF4444' },
+                { id: 'reflexivo', label: 'Reflexivo', desc: 'Pensar profundamente', icon: <ReflectIcon sx={{ fontSize: 36 }} />, color: '#8B5CF6' },
+                { id: 'emocionado', label: 'Emocionado', desc: 'Algo sorprendente', icon: <MagicIcon sx={{ fontSize: 36 }} />, color: '#EC4899' },
               ].map((mood) => (
                 <Card
                   key={mood.id}
                   onClick={() => setSelectedMood(mood.id)}
                   sx={{
-                    p: 3,
+                    p: 2,
                     cursor: 'pointer',
                     border: selectedMood === mood.id ? 2 : 1,
                     borderColor: selectedMood === mood.id ? mood.color : 'divider',
@@ -125,22 +127,23 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     textAlign: 'center',
                     background: selectedMood === mood.id ? `${mood.color}15` : 'white',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
+                      transform: 'translateY(-4px)',
                       borderColor: mood.color,
-                      boxShadow: `0 12px 24px ${mood.color}40`,
+                      boxShadow: `0 8px 16px ${mood.color}40`,
                     },
                   }}
                 >
-                  <Box sx={{ color: mood.color, mb: 2 }}>
+                  <Box sx={{ color: mood.color, mb: 1 }}>
                     {mood.icon}
                   </Box>
-                  <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
+                  <Typography variant="body1" fontWeight={700} sx={{ mb: 0.5, fontSize: '1rem' }}>
                     {mood.label}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     {mood.desc}
                   </Typography>
                 </Card>
@@ -151,7 +154,7 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
               variant="contained"
               disabled={!selectedMood}
               onClick={() => setAiStep(1)}
-              sx={{ mt: 4, py: 1.8, fontWeight: 700, fontSize: '1.05rem' }}
+              sx={{ mt: 2, py: 1.5, fontWeight: 700, fontSize: '1rem' }}
             >
               Siguiente →
             </Button>
@@ -160,30 +163,30 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
 
         {/* Step 2: Genre Selection */}
         {aiStep === 1 && (
-          <Box>
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h5" fontWeight={700} gutterBottom>
               ¿Qué género prefieres?
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               Elige el tipo de lectura que más te atrae
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, gridAutoRows: '115px' }}>
               {[
-                { id: 'ficcion', label: 'Ficción', icon: <FictionIcon sx={{ fontSize: 36 }} />, color: '#3B82F6' },
-                { id: 'no-ficcion', label: 'No Ficción', icon: <NonFictionIcon sx={{ fontSize: 36 }} />, color: '#10B981' },
-                { id: 'fantasia', label: 'Fantasía', icon: <CastleIcon sx={{ fontSize: 36 }} />, color: '#8B5CF6' },
-                { id: 'ciencia-ficcion', label: 'Ciencia Ficción', icon: <RocketIcon sx={{ fontSize: 36 }} />, color: '#06B6D4' },
-                { id: 'romance', label: 'Romance', icon: <RomanceIcon sx={{ fontSize: 36 }} />, color: '#EC4899' },
-                { id: 'thriller', label: 'Thriller', icon: <MenuBookIcon sx={{ fontSize: 36 }} />, color: '#EF4444' },
-                { id: 'historia', label: 'Historia', icon: <HistoryIcon sx={{ fontSize: 36 }} />, color: '#F59E0B' },
-                { id: 'biografia', label: 'Biografía', icon: <BusinessIcon sx={{ fontSize: 36 }} />, color: '#64748B' },
-                { id: 'ciencia', label: 'Ciencia', icon: <ScienceBookIcon sx={{ fontSize: 36 }} />, color: '#0EA5E9' },
+                { id: 'ficcion', label: 'Ficción', icon: <FictionIcon sx={{ fontSize: 26 }} />, color: '#3B82F6' },
+                { id: 'no-ficcion', label: 'No Ficción', icon: <NonFictionIcon sx={{ fontSize: 26 }} />, color: '#10B981' },
+                { id: 'fantasia', label: 'Fantasía', icon: <CastleIcon sx={{ fontSize: 26 }} />, color: '#8B5CF6' },
+                { id: 'ciencia-ficcion', label: 'Ciencia Ficción', icon: <RocketIcon sx={{ fontSize: 26 }} />, color: '#06B6D4' },
+                { id: 'romance', label: 'Romance', icon: <RomanceIcon sx={{ fontSize: 26 }} />, color: '#EC4899' },
+                { id: 'thriller', label: 'Thriller', icon: <MenuBookIcon sx={{ fontSize: 26 }} />, color: '#EF4444' },
+                { id: 'historia', label: 'Historia', icon: <HistoryIcon sx={{ fontSize: 26 }} />, color: '#F59E0B' },
+                { id: 'biografia', label: 'Biografía', icon: <BusinessIcon sx={{ fontSize: 26 }} />, color: '#64748B' },
+                { id: 'ciencia', label: 'Ciencia', icon: <ScienceBookIcon sx={{ fontSize: 26 }} />, color: '#0EA5E9' },
               ].map((genre) => (
                 <Card
                   key={genre.id}
                   onClick={() => setSelectedGenre(genre.id)}
                   sx={{
-                    p: 2.5,
+                    p: 1.5,
                     cursor: 'pointer',
                     border: selectedGenre === genre.id ? 2 : 1,
                     borderColor: selectedGenre === genre.id ? genre.color : 'divider',
@@ -192,28 +195,29 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     background: selectedGenre === genre.id ? `${genre.color}15` : 'white',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
+                      transform: 'translateY(-4px)',
                       borderColor: genre.color,
-                      boxShadow: `0 12px 24px ${genre.color}40`,
+                      boxShadow: `0 8px 16px ${genre.color}40`,
                     },
                   }}
                 >
-                  <Box sx={{ color: genre.color, mb: 1 }}>
+                  <Box sx={{ color: genre.color, mb: 0.5 }}>
                     {genre.icon}
                   </Box>
-                  <Typography variant="body1" fontWeight={700}>
+                  <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.8rem' }}>
                     {genre.label}
                   </Typography>
                 </Card>
               ))}
             </Box>
-            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
               <Button
                 variant="outlined"
                 onClick={() => setAiStep(0)}
-                sx={{ py: 1.8, fontWeight: 700, fontSize: '1.05rem', flex: 1 }}
+                sx={{ py: 1.5, fontWeight: 700, fontSize: '1rem', flex: 1 }}
               >
                 ← Atrás
               </Button>
@@ -221,7 +225,7 @@ const AIRecommendationModal: React.FC<AIRecommendationModalProps> = ({ open, onC
                 variant="contained"
                 disabled={!selectedGenre}
                 onClick={() => setAiStep(2)}
-                sx={{ py: 1.8, fontWeight: 700, fontSize: '1.05rem', flex: 2 }}
+                sx={{ py: 1.5, fontWeight: 700, fontSize: '1rem', flex: 2 }}
               >
                 Ver Recomendaciones →
               </Button>
