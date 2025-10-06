@@ -82,10 +82,10 @@ const TopAppBar: React.FC<TopAppBarProps> = ({ onMenuClick }) => {
     navigate('/profile');
   };
 
-  const handleEditProfile = () => {
-    handleMenuClose();
-    navigate('/profile/edit');
-  };
+  // const handleEditProfile = () => {
+  //   handleMenuClose();
+  //   navigate('/profile/edit');
+  // };
 
   const handleSettings = () => {
     handleMenuClose();

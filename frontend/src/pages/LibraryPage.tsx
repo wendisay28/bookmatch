@@ -156,6 +156,7 @@ const LibraryPage = () => {
   // Cargar libros disponibles al montar
   useEffect(() => {
     loadBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadBooks = async (search?: string) => {

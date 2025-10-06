@@ -12,8 +12,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // const theme = useTheme();
+  // const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [value, setValue] = React.useState(0);
 
   React.useEffect(() => {
