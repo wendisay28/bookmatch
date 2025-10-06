@@ -15,18 +15,50 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import { validateEmail, validatePassword } from '../utils/validation';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setEmailError('');
+    setError('');
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setPasswordError('');
+    setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setEmailError('');
+    setPasswordError('');
+
+    // Validar campos
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || '');
+      return;
+    }
+
+    if (!passwordValidation.isValid) {
+      setPasswordError(passwordValidation.error || '');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -81,14 +113,16 @@ const LoginPage = () => {
                 label="Correo electrónico"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                error={!!emailError}
+                helperText={emailError}
                 required
                 autoFocus
                 sx={{ mb: 2 }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Email sx={{ color: '#2e6ff2' }} />
+                      <Email sx={{ color: emailError ? 'error.main' : '#2e6ff2' }} />
                     </InputAdornment>
                   ),
                 }}
@@ -98,8 +132,10 @@ const LoginPage = () => {
                 fullWidth
                 label="Contraseña"
                 type={showPassword ? 'text' : 'password'}
+                error={!!passwordError}
+                helperText={passwordError}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => handlePasswordChange(e.target.value)}
                 required
                 sx={{ mb: 3 }}
                 InputProps={{
