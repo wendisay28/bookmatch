@@ -1,5 +1,9 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { loginUser, logoutUser, registerUser, RegisterData } from '../services/authService';
 
 declare global {
   interface Window {
@@ -14,6 +18,10 @@ interface User {
   avatar?: string;
   subscriptionStatus: 'active' | 'inactive' | 'trial';
   walletAddress?: string;
+  readerLevel?: number;
+  booksLinked?: number;
+  totalExchanges?: number;
+  eventsAttended?: number;
 }
 
 interface AuthContextType {
@@ -23,6 +31,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   connectWallet: () => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,42 +41,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  // Check if user is logged in on initial load
+  // Check if user is logged in on initial load with Firebase
   useEffect(() => {
-    const initializeAuth = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       try {
-        // TODO: Replace with actual auth check (e.g., token validation)
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        if (firebaseUser) {
+          // Obtener datos adicionales del usuario desde Firestore
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userProfile: User = {
+              id: firebaseUser.uid,
+              name: userData.name || firebaseUser.displayName || '',
+              email: firebaseUser.email || '',
+              subscriptionStatus: 'active',
+              readerLevel: userData.readerLevel || 1,
+              booksLinked: userData.booksLinked || 0,
+              totalExchanges: userData.totalExchanges || 0,
+              eventsAttended: userData.eventsAttended || 0,
+              walletAddress: userData.walletAddress
+            };
+            setUser(userProfile);
+          }
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Failed to initialize auth', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
-    };
+    });
 
-    initializeAuth();
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // TODO: Replace with actual authentication API call
-      // This is a mock implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data
-      const mockUser: User = {
-        id: '123',
-        name: 'John Doe',
-        email,
-        subscriptionStatus: 'active',
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      await loginUser(email, password);
+      // El estado del usuario se actualizará automáticamente por onAuthStateChanged
       navigate('/');
     } catch (error) {
       console.error('Login failed', error);
@@ -77,10 +92,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    navigate('/login');
+  const logout = async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+      throw error;
+    }
+  };
+
+  const register = async (data: RegisterData) => {
+    try {
+      setIsLoading(true);
+      await registerUser(data);
+      // El estado del usuario se actualizará automáticamente por onAuthStateChanged
+      navigate('/');
+    } catch (error) {
+      console.error('Registration failed', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const connectWallet = async () => {
@@ -148,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         logout,
         connectWallet,
+        register,
       }}
     >
       {!isLoading && children}

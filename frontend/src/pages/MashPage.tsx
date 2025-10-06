@@ -2,55 +2,31 @@ import React, { useState, useEffect } from 'react';
 import {
   Container, Typography, Box, Button, Paper, Grid,
   Alert, IconButton, Snackbar, Modal, RadioGroup,
-  FormControlLabel, Radio, TextField, Chip, AlertColor
+  FormControlLabel, Radio, TextField, Chip, AlertColor,
+  CircularProgress, Dialog, DialogTitle, DialogContent,
+  DialogActions, ImageList, ImageListItem, IconButton as MuiIconButton
 } from '@mui/material';
 import {
   Book, ListAlt, Repeat, CheckCircle, Info, Close,
-  Check, Mail, Visibility, Settings
+  Check, Mail, Visibility, Settings,
+  Add as AddIcon, PhotoCamera, Delete as DeleteIcon
 } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
+import {
+  getMyHoldingBooks,
+  getMyContributedBooks,
+  getReceivedRequests,
+  getSentRequests,
+  setBookAvailability as setBookAvailabilityService,
+  acceptRequest as acceptRequestService,
+  rejectRequest as rejectRequestService,
+  HoldingBook,
+  Book as BookType,
+  ExchangeRequest
+} from '../services/matchService';
+import { contributeBook } from '../services/bookService';
 
-// --- INTERFACES ---
-
-interface Book {
-  id: number;
-  title: string;
-  author: string;
-  receivedDate: string;
-  daysHeld: number;
-  code: string;
-  img: string;
-  isAvailable: boolean;
-  availableDate: string | null;
-}
-
-interface ContributedBook {
-  id: number;
-  title: string;
-  author: string;
-  code: string;
-  exchanges: number;
-  cities: string[];
-  avgTime: number;
-  current: string;
-  img: string;
-}
-
-interface ReceivedRequest {
-  id: number;
-  bookTitle: string;
-  bookCode: string;
-  fromUser: string;
-  requestDate: string;
-  bookId: number;
-}
-
-interface SentRequest {
-  id: number;
-  bookTitle: string;
-  bookCode: string;
-  toUser: string;
-  status: string;
-}
+// --- INTERFACES (adaptadas) ---
 
 interface AlertConfig {
   type: AlertColor;
@@ -58,20 +34,24 @@ interface AlertConfig {
 }
 
 interface HoldingTabProps {
-  list: Book[];
-  openAvailabilityModal: (bookId: number, title?: string, isAvailable?: boolean) => void;
+  list: HoldingBook[];
+  openAvailabilityModal: (bookId: string, title?: string, isAvailable?: boolean) => void;
   showCustomAlert: (type: AlertColor, message: string) => void;
+  onViewTraceability: (book: HoldingBook) => void;
 }
 
 interface ContributedTabProps {
-  list: ContributedBook[];
+  list: BookType[];
   showCustomAlert: (type: AlertColor, message: string) => void;
+  getCurrentHolder: (bookId: string) => Promise<string>;
 }
 
 interface ExchangeTabProps {
-  received: ReceivedRequest[];
-  sent: SentRequest[];
+  received: ExchangeRequest[];
+  sent: ExchangeRequest[];
   showCustomAlert: (type: AlertColor, message: string) => void;
+  onAcceptRequest: (requestId: string) => Promise<void>;
+  onRejectRequest: (requestId: string) => Promise<void>;
 }
 
 interface CustomAlertProps {
@@ -83,32 +63,12 @@ interface CustomAlertProps {
 interface AvailabilityModalProps {
   open: boolean;
   handleClose: () => void;
-  book: Book | null;
-  setAvailability: (bookId: number, isAvailable: boolean, availableDate: string | null) => void;
+  book: HoldingBook | null;
+  setAvailability: (bookId: string, isAvailable: boolean, availableDate: string | null) => void;
   showCustomAlert: (type: AlertColor, message: string) => void;
 }
 
-// --- DATOS DE SIMULACIÓN (Reemplazan la data del script) ---
-
-const initialHoldingList: Book[] = [
-  { id: 501, title: 'El arte de la guerra', author: 'Sun Tzu', receivedDate: '2025-09-15', daysHeld: 45, code: 'TFT-777T', img: 'https://placehold.co/100x150/14B8A6/ffffff?text=ACTUAL', isAvailable: false, availableDate: null },
-  { id: 502, title: 'La sombra del viento', author: 'C.R. Zafón', receivedDate: '2025-08-01', daysHeld: 60, code: 'TFT-345F', img: 'https://placehold.co/100x150/CA8A04/000000?text=CRZ', isAvailable: true, availableDate: null },
-];
-
-const myBooksList: ContributedBook[] = [
-  { id: 101, title: 'Cien años de soledad', author: 'GGM', code: 'TFT-001A', exchanges: 4, cities: ['BOG', 'MED', 'CAL'], avgTime: 8, current: 'Laura V.', img: 'https://placehold.co/100x150/5B21B6/ffffff?text=GGM' },
-  { id: 102, title: 'El laberinto de la soledad', author: 'Octavio Paz', code: 'TFT-002B', exchanges: 2, cities: ['BOG', 'MEX'], avgTime: 10, current: 'Carlos J.', img: 'https://placehold.co/100x150/CA8A04/ffffff?text=OP' },
-  { id: 103, title: 'Rayuela', author: 'Julio Cortázar', code: 'TFT-003C', exchanges: 7, cities: ['BOG', 'CDMX', 'MAD'], avgTime: 5, current: 'María S.', img: 'https://placehold.co/100x150/6D28D9/ffffff?text=JC' },
-];
-
-const receivedRequests: ReceivedRequest[] = [
-  { id: 10, bookTitle: 'El arte de la guerra', bookCode: 'TFT-777T', fromUser: 'Ricardo G.', requestDate: '2025-09-29', bookId: 501 },
-];
-
-const sentRequests: SentRequest[] = [
-  { id: 20, bookTitle: '1984', bookCode: 'TFT-123X', toUser: 'Elena M.', status: 'Pendiente' },
-  { id: 21, bookTitle: 'Drácula', bookCode: 'TFT-789G', toUser: 'Ana R.', status: 'Aceptada' },
-];
+// Los datos ahora se cargarán desde Firestore
 
 // Estilo del modal (para centrarlo)
 const modalStyle = {
@@ -126,7 +86,7 @@ const modalStyle = {
 // --- Sub-Componentes (Pestañas) ---
 
 // Pestaña 1: Libros en mi poder
-const HoldingTab: React.FC<HoldingTabProps> = ({ list, openAvailabilityModal, showCustomAlert }) => (
+const HoldingTab: React.FC<HoldingTabProps> = ({ list, openAvailabilityModal, onViewTraceability }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
     {list.length === 0 ? (
       <Paper elevation={1} sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
@@ -137,7 +97,7 @@ const HoldingTab: React.FC<HoldingTabProps> = ({ list, openAvailabilityModal, sh
         <Paper key={book.id} elevation={3} sx={{ p: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', gap: 2 }}>
           <Box
             component="img"
-            src={book.img}
+            src={book.coverUrl}
             alt={book.title}
             sx={{ width: 80, height: 120, objectFit: 'cover', borderRadius: 1, boxShadow: 1, alignSelf: { xs: 'center', sm: 'flex-start' } }}
           />
@@ -170,7 +130,7 @@ const HoldingTab: React.FC<HoldingTabProps> = ({ list, openAvailabilityModal, sh
             <Button
               variant="outlined"
               size="small"
-              onClick={() => showCustomAlert('info', `Mostrando trazabilidad para ${book.code}`)}
+              onClick={() => onViewTraceability(book)}
               startIcon={<Visibility />}
             >
               Ver Trazabilidad
@@ -192,64 +152,79 @@ const HoldingTab: React.FC<HoldingTabProps> = ({ list, openAvailabilityModal, sh
 );
 
 // Pestaña 2: Libros Aportados al club
-const ContributedTab: React.FC<ContributedTabProps> = ({ list, showCustomAlert }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-    {list.length === 0 ? (
-      <Paper elevation={1} sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
-        Aún no has aportado libros al club.
-      </Paper>
-    ) : (
-      list.map(book => (
-        <Paper key={book.id} elevation={3} sx={{ p: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', gap: 2 }}>
-          <Box
-            component="img"
-            src={book.img}
-            alt={book.title}
-            sx={{ width: 80, height: 120, objectFit: 'cover', borderRadius: 1, boxShadow: 1, alignSelf: { xs: 'center', sm: 'flex-start' } }}
-          />
-          <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: 'auto' } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6" component="p" sx={{ fontWeight: 'bold' }}>
-                {book.title}
-              </Typography>
-              <Chip label={book.code} size="small" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', color: 'grey.600' }} />
-            </Box>
-            <Typography variant="body2" color="text.secondary">Aportado por ti</Typography>
+const ContributedTab: React.FC<ContributedTabProps> = ({ list, showCustomAlert, getCurrentHolder }) => {
+  const [holderNames, setHolderNames] = useState<Record<string, string>>({});
 
-            <Grid container spacing={1} sx={{ mt: 1, fontSize: '0.875rem' }}>
-              <Grid item xs={6}>
-                <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Intercambios:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.exchanges}</Box></Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Ciudades:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.cities.join(', ')}</Box></Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Lector Actual:</Box> <Box component="span" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{book.current}</Box></Box>
-              </Grid>
-              <Grid item xs={6}>
-                <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Lectura Promedio:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.avgTime} días</Box></Box>
-              </Grid>
-            </Grid>
-          </Box>
-          <Box sx={{ width: { xs: '100%', sm: 200 }, display: 'flex', alignItems: 'center', alignSelf: 'stretch' }}>
-            <Button
-              variant="contained"
-              size="small"
-              color="primary"
-              onClick={() => showCustomAlert('info', `Mostrando Ruta TFT completa para ${book.code}`)}
-              sx={{ width: '100%' }}
-            >
-              Ver Ruta TFT Completa
-            </Button>
-          </Box>
+  useEffect(() => {
+    const loadHolderNames = async () => {
+      const names: Record<string, string> = {};
+      for (const book of list) {
+        names[book.id] = await getCurrentHolder(book.id);
+      }
+      setHolderNames(names);
+    };
+    loadHolderNames();
+  }, [list, getCurrentHolder]);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {list.length === 0 ? (
+        <Paper elevation={1} sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
+          Aún no has aportado libros al club.
         </Paper>
-      ))
-    )}
-  </Box>
-);
+      ) : (
+        list.map(book => (
+          <Paper key={book.id} elevation={3} sx={{ p: 2, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', gap: 2 }}>
+            <Box
+              component="img"
+              src={book.coverUrl}
+              alt={book.title}
+              sx={{ width: 80, height: 120, objectFit: 'cover', borderRadius: 1, boxShadow: 1, alignSelf: { xs: 'center', sm: 'flex-start' } }}
+            />
+            <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: 'auto' } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" component="p" sx={{ fontWeight: 'bold' }}>
+                  {book.title}
+                </Typography>
+                <Chip label={book.code} size="small" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', color: 'grey.600' }} />
+              </Box>
+              <Typography variant="body2" color="text.secondary">Aportado por ti</Typography>
+
+              <Grid container spacing={1} sx={{ mt: 1, fontSize: '0.875rem' }}>
+                <Grid item xs={6}>
+                  <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Intercambios:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.totalExchanges}</Box></Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Ciudades:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.cities.join(', ') || 'N/A'}</Box></Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Lector Actual:</Box> <Box component="span" sx={{ fontWeight: 'bold', color: 'primary.main' }}>{holderNames[book.id] || 'Cargando...'}</Box></Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box><Box component="span" sx={{ fontWeight: 'medium' }}>Lectura Promedio:</Box> <Box component="span" sx={{ fontWeight: 'bold' }}>{book.avgReadingTime} días</Box></Box>
+                </Grid>
+              </Grid>
+            </Box>
+            <Box sx={{ width: { xs: '100%', sm: 200 }, display: 'flex', alignItems: 'center', alignSelf: 'stretch' }}>
+              <Button
+                variant="contained"
+                size="small"
+                color="primary"
+                onClick={() => showCustomAlert('info', `La ruta TFT completa se implementará con Polkadot para ${book.code}`)}
+                sx={{ width: '100%' }}
+              >
+                Ver Ruta TFT Completa
+              </Button>
+            </Box>
+          </Paper>
+        ))
+      )}
+    </Box>
+  );
+};
 
 // Pestaña 3: Intercambios
-const ExchangeTab: React.FC<ExchangeTabProps> = ({ received, sent, showCustomAlert }) => (
+const ExchangeTab: React.FC<ExchangeTabProps> = ({ received, sent, showCustomAlert, onAcceptRequest, onRejectRequest }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
     {/* Solicitudes Recibidas */}
     <Box>
@@ -264,14 +239,17 @@ const ExchangeTab: React.FC<ExchangeTabProps> = ({ received, sent, showCustomAle
                 {req.bookTitle} <Box component="span" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'grey.500' }}>{req.bookCode}</Box>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Solicitud de: <Box component="span" sx={{ fontWeight: 'medium', color: 'primary.main' }}>{req.fromUser}</Box>
+                Solicitud de: <Box component="span" sx={{ fontWeight: 'medium', color: 'primary.main' }}>{req.fromUserName}</Box>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date(req.requestDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton color="success" onClick={() => showCustomAlert('success', `Solicitud para ${req.bookTitle} ACEPTADA.`)}>
+              <IconButton color="success" onClick={() => onAcceptRequest(req.id)}>
                 <CheckCircle />
               </IconButton>
-              <IconButton color="error" onClick={() => showCustomAlert('error', `Solicitud para ${req.bookTitle} RECHAZADA.`)}>
+              <IconButton color="error" onClick={() => onRejectRequest(req.id)}>
                 <Close />
               </IconButton>
             </Box>
@@ -296,20 +274,23 @@ const ExchangeTab: React.FC<ExchangeTabProps> = ({ received, sent, showCustomAle
               {req.bookTitle} <Box component="span" sx={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'grey.500' }}>{req.bookCode}</Box>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Solicitado a: <Box component="span" sx={{ fontWeight: 'medium', color: 'primary.main' }}>{req.toUser}</Box>
+              Solicitado a: <Box component="span" sx={{ fontWeight: 'medium', color: 'primary.main' }}>{req.toUserName}</Box>
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {new Date(req.requestDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
             </Typography>
             <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Chip
-                label={req.status}
+                label={req.status === 'pending' ? 'Pendiente' : req.status === 'accepted' ? 'Aceptada' : 'Rechazada'}
                 size="small"
-                icon={req.status === 'Pendiente' ? <Info fontSize="small" /> : <Check fontSize="small" />}
+                icon={req.status === 'pending' ? <Info fontSize="small" /> : req.status === 'accepted' ? <Check fontSize="small" /> : <Close fontSize="small" />}
                 sx={{
-                  bgcolor: req.status === 'Pendiente' ? 'warning.light' : 'success.light',
-                  color: req.status === 'Pendiente' ? 'warning.dark' : 'success.dark',
+                  bgcolor: req.status === 'pending' ? 'warning.light' : req.status === 'accepted' ? 'success.light' : 'error.light',
+                  color: req.status === 'pending' ? 'warning.dark' : req.status === 'accepted' ? 'success.dark' : 'error.dark',
                   fontWeight: 'semibold'
                 }}
               />
-              <IconButton color="primary" onClick={() => showCustomAlert('info', `Mensaje enviado a ${req.toUser}`)}>
+              <IconButton color="primary" onClick={() => showCustomAlert('info', `Función de mensajería próximamente`)}>
                 <Mail />
               </IconButton>
             </Box>
@@ -449,13 +430,64 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({ open, handleClose
 // --- Componente Principal ---
 
 export default function MyBooksApp() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('holding');
-  const [holdingList, setHoldingList] = useState<Book[]>(initialHoldingList);
+  const [loading, setLoading] = useState(true);
+  const [holdingList, setHoldingList] = useState<HoldingBook[]>([]);
+  const [contributedList, setContributedList] = useState<BookType[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<ExchangeRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<ExchangeRequest[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentBookForModal, setCurrentBookForModal] = useState<Book | null>(null);
+  const [currentBookForModal, setCurrentBookForModal] = useState<HoldingBook | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
+  const [addBookDialogOpen, setAddBookDialogOpen] = useState(false);
+  const [newBookData, setNewBookData] = useState({
+    title: '',
+    author: '',
+    isbn: '',
+    coverUrl: '',
+    city: ''
+  });
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [addingBook, setAddingBook] = useState(false);
+  const [traceabilityDialogOpen, setTraceabilityDialogOpen] = useState(false);
+  const [selectedBookForTrace, setSelectedBookForTrace] = useState<HoldingBook | null>(null);
 
+  // Cargar todos los datos al montar el componente
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Cargar datos en paralelo
+        const [holding, contributed, received, sent] = await Promise.all([
+          getMyHoldingBooks(user.id),
+          getMyContributedBooks(user.id),
+          getReceivedRequests(user.id),
+          getSentRequests(user.id)
+        ]);
+
+        setHoldingList(holding);
+        setContributedList(contributed);
+        setReceivedRequests(received);
+        setSentRequests(sent);
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+        showCustomAlert('error', 'Error al cargar tus libros. Intenta de nuevo.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
 
   // Lógica para mostrar las alertas (Snackbar)
   const showCustomAlert = (type: AlertColor, message: string) => {
@@ -469,7 +501,7 @@ export default function MyBooksApp() {
   };
 
   // Lógica para el modal de disponibilidad
-  const openAvailabilityModal = (bookId: number) => {
+  const openAvailabilityModal = (bookId: string) => {
     const book = holdingList.find(b => b.id === bookId);
     if (book) {
       setCurrentBookForModal(book);
@@ -483,14 +515,155 @@ export default function MyBooksApp() {
   };
 
   // Lógica para actualizar la disponibilidad del libro
-  const setBookAvailability = (bookId: number, isAvailable: boolean, availableDate: string | null) => {
-    setHoldingList(prevList =>
-      prevList.map(book =>
-        book.id === bookId
-          ? { ...book, isAvailable, availableDate }
-          : book
-      )
-    );
+  const handleSetBookAvailability = async (bookId: string, isAvailable: boolean, availableDate: string | null) => {
+    try {
+      await setBookAvailabilityService(bookId, isAvailable, availableDate);
+
+      // Actualizar la lista local
+      setHoldingList(prevList =>
+        prevList.map(book =>
+          book.id === bookId
+            ? { ...book, isAvailable, availableDate }
+            : book
+        )
+      );
+    } catch (error) {
+      console.error('Error al actualizar disponibilidad:', error);
+      showCustomAlert('error', 'Error al actualizar la disponibilidad del libro');
+    }
+  };
+
+  // Obtener nombre del lector actual
+  const getCurrentHolder = async (bookId: string): Promise<string> => {
+    try {
+      const { getCurrentBookHolder } = await import('../services/matchService');
+      const holder = await getCurrentBookHolder(bookId);
+      return holder?.name || 'Usuario';
+    } catch (error) {
+      console.error('Error al obtener lector actual:', error);
+      return 'Usuario';
+    }
+  };
+
+  // Aceptar solicitud de intercambio
+  const handleAcceptRequest = async (requestId: string) => {
+    const city = prompt('¿En qué ciudad se realizará el intercambio?');
+    if (!city) {
+      showCustomAlert('warning', 'Es necesario especificar la ciudad');
+      return;
+    }
+
+    try {
+      await acceptRequestService(requestId, city);
+      showCustomAlert('success', '¡Solicitud aceptada! El libro ha sido transferido.');
+
+      // Recargar datos
+      if (user) {
+        const [holding, received] = await Promise.all([
+          getMyHoldingBooks(user.id),
+          getReceivedRequests(user.id)
+        ]);
+        setHoldingList(holding);
+        setReceivedRequests(received);
+      }
+    } catch (error: any) {
+      console.error('Error al aceptar solicitud:', error);
+      showCustomAlert('error', error.message || 'Error al aceptar la solicitud');
+    }
+  };
+
+  // Rechazar solicitud de intercambio
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await rejectRequestService(requestId);
+      showCustomAlert('info', 'Solicitud rechazada');
+
+      // Recargar solicitudes recibidas
+      if (user) {
+        const received = await getReceivedRequests(user.id);
+        setReceivedRequests(received);
+      }
+    } catch (error) {
+      console.error('Error al rechazar solicitud:', error);
+      showCustomAlert('error', 'Error al rechazar la solicitud');
+    }
+  };
+
+  // Manejar selección de imágenes
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+
+    // Limitar a 5 imágenes
+    if (selectedImages.length + fileArray.length > 5) {
+      showCustomAlert('warning', 'Máximo 5 imágenes por libro');
+      return;
+    }
+
+    setSelectedImages([...selectedImages, ...fileArray]);
+
+    // Crear previews
+    fileArray.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Eliminar imagen seleccionada
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Agregar/Contribuir nuevo libro
+  const handleAddBook = async () => {
+    if (!user) return;
+
+    // Validar campos requeridos
+    if (!newBookData.title.trim() || !newBookData.author.trim() || !newBookData.city.trim()) {
+      showCustomAlert('error', 'Por favor completa título, autor y ciudad');
+      return;
+    }
+
+    try {
+      setAddingBook(true);
+      const tftCode = await contributeBook(user.id, {
+        ...newBookData,
+        images: selectedImages.length > 0 ? selectedImages : undefined
+      });
+
+      showCustomAlert('success', `¡Libro agregado exitosamente! Código TFT: ${tftCode}`);
+
+      // Recargar datos
+      const [holding, contributed] = await Promise.all([
+        getMyHoldingBooks(user.id),
+        getMyContributedBooks(user.id)
+      ]);
+      setHoldingList(holding);
+      setContributedList(contributed);
+
+      // Limpiar formulario y cerrar diálogo
+      setNewBookData({
+        title: '',
+        author: '',
+        isbn: '',
+        coverUrl: '',
+        city: ''
+      });
+      setSelectedImages([]);
+      setImagePreviews([]);
+      setAddBookDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error al agregar libro:', error);
+      showCustomAlert('error', error.message || 'Error al agregar el libro');
+    } finally {
+      setAddingBook(false);
+    }
   };
 
   // Definición de los botones de pestaña
@@ -502,13 +675,35 @@ export default function MyBooksApp() {
 
   // Renderizado del contenido de la pestaña activa
   const renderTabContent = () => {
+    if (loading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
     switch (activeTab) {
       case 'holding':
-        return <HoldingTab list={holdingList} openAvailabilityModal={openAvailabilityModal} showCustomAlert={showCustomAlert} />;
+        return <HoldingTab
+          list={holdingList}
+          openAvailabilityModal={openAvailabilityModal}
+          showCustomAlert={showCustomAlert}
+          onViewTraceability={(book) => {
+            setSelectedBookForTrace(book);
+            setTraceabilityDialogOpen(true);
+          }}
+        />;
       case 'contributed':
-        return <ContributedTab list={myBooksList} showCustomAlert={showCustomAlert} />;
+        return <ContributedTab list={contributedList} showCustomAlert={showCustomAlert} getCurrentHolder={getCurrentHolder} />;
       case 'exchange':
-        return <ExchangeTab received={receivedRequests} sent={sentRequests} showCustomAlert={showCustomAlert} />;
+        return <ExchangeTab
+          received={receivedRequests}
+          sent={sentRequests}
+          showCustomAlert={showCustomAlert}
+          onAcceptRequest={handleAcceptRequest}
+          onRejectRequest={handleRejectRequest}
+        />;
       default:
         return null;
     }
@@ -516,9 +711,24 @@ export default function MyBooksApp() {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: '800', borderBottom: 1, borderColor: 'grey.300', pb: 1.5, color: 'grey.900' }}>
-        Mis Libros (TFT Tracker)
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h3" component="h1" sx={{ fontWeight: '800', color: 'grey.900' }}>
+          Mis Libros (TFT Tracker)
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setAddBookDialogOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
+            }
+          }}
+        >
+          Agregar Libro
+        </Button>
+      </Box>
 
       {/* Control de Pestañas (Tabs) */}
       <Paper elevation={4} sx={{ mb: 4, p: 1, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, borderRadius: '12px' }}>
@@ -559,10 +769,361 @@ export default function MyBooksApp() {
         open={isModalOpen}
         handleClose={closeAvailabilityModal}
         book={currentBookForModal}
-        setAvailability={setBookAvailability}
+        setAvailability={handleSetBookAvailability}
         showCustomAlert={showCustomAlert}
       />
       <CustomAlert open={alertOpen} handleClose={handleAlertClose} alert={alertConfig} />
+
+      {/* Dialog para agregar libro */}
+      <Dialog
+        open={addBookDialogOpen}
+        onClose={() => !addingBook && setAddBookDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          Contribuir Libro al Sistema TFT
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Al agregar un libro, se generará automáticamente un código TFT único para rastrear su recorrido.
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              required
+              fullWidth
+              label="Título del libro"
+              value={newBookData.title}
+              onChange={(e) => setNewBookData({ ...newBookData, title: e.target.value })}
+              disabled={addingBook}
+            />
+
+            <TextField
+              required
+              fullWidth
+              label="Autor"
+              value={newBookData.author}
+              onChange={(e) => setNewBookData({ ...newBookData, author: e.target.value })}
+              disabled={addingBook}
+            />
+
+            <TextField
+              fullWidth
+              label="ISBN (opcional)"
+              value={newBookData.isbn}
+              onChange={(e) => setNewBookData({ ...newBookData, isbn: e.target.value })}
+              disabled={addingBook}
+            />
+
+            <TextField
+              fullWidth
+              label="URL de portada (opcional)"
+              value={newBookData.coverUrl}
+              onChange={(e) => setNewBookData({ ...newBookData, coverUrl: e.target.value })}
+              disabled={addingBook}
+              helperText="Deja vacío para usar imagen por defecto"
+            />
+
+            <TextField
+              required
+              fullWidth
+              label="Ciudad"
+              value={newBookData.city}
+              onChange={(e) => setNewBookData({ ...newBookData, city: e.target.value })}
+              disabled={addingBook}
+              helperText="Ciudad donde inicias el recorrido del libro"
+            />
+
+            {/* Sección de carga de imágenes */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                Imágenes del libro (opcional)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                Sube fotos del estado del libro. Máximo 5 imágenes.
+              </Typography>
+
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<PhotoCamera />}
+                disabled={addingBook || selectedImages.length >= 5}
+                fullWidth
+                sx={{ mb: 2 }}
+              >
+                Seleccionar Imágenes
+                <input
+                  hidden
+                  accept="image/*"
+                  multiple
+                  type="file"
+                  onChange={handleImageSelect}
+                />
+              </Button>
+
+              {/* Previsualizaciones de imágenes */}
+              {imagePreviews.length > 0 && (
+                <ImageList sx={{ maxHeight: 200 }} cols={3} rowHeight={100}>
+                  {imagePreviews.map((preview, index) => (
+                    <ImageListItem key={index} sx={{ position: 'relative' }}>
+                      <img
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        loading="lazy"
+                        style={{ objectFit: 'cover', height: '100%' }}
+                      />
+                      <MuiIconButton
+                        size="small"
+                        onClick={() => handleRemoveImage(index)}
+                        disabled={addingBook}
+                        sx={{
+                          position: 'absolute',
+                          top: 4,
+                          right: 4,
+                          bgcolor: 'rgba(0,0,0,0.6)',
+                          color: 'white',
+                          '&:hover': {
+                            bgcolor: 'rgba(0,0,0,0.8)',
+                          }
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </MuiIconButton>
+                    </ImageListItem>
+                  ))}
+                </ImageList>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setAddBookDialogOpen(false)} disabled={addingBook}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleAddBook}
+            variant="contained"
+            disabled={addingBook}
+            startIcon={addingBook ? <CircularProgress size={20} /> : <AddIcon />}
+            sx={{
+              background: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
+              }
+            }}
+          >
+            {addingBook ? 'Agregando...' : 'Agregar Libro'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para ver trazabilidad */}
+      <Dialog
+        open={traceabilityDialogOpen}
+        onClose={() => setTraceabilityDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          Trazabilidad del Libro
+        </DialogTitle>
+        <DialogContent>
+          {selectedBookForTrace && (
+            <Box>
+              {/* Información del libro */}
+              <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  <Box
+                    component="img"
+                    src={selectedBookForTrace.coverUrl}
+                    alt={selectedBookForTrace.title}
+                    sx={{
+                      width: 100,
+                      height: 150,
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                      boxShadow: 2
+                    }}
+                  />
+                  <Box sx={{ flex: 1 }}>
+                    <Chip
+                      label={selectedBookForTrace.code}
+                      size="small"
+                      sx={{
+                        fontFamily: 'monospace',
+                        fontWeight: 'bold',
+                        mb: 1,
+                        bgcolor: 'primary.100',
+                        color: 'primary.700'
+                      }}
+                    />
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      {selectedBookForTrace.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {selectedBookForTrace.author}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      <Chip
+                        label={`${selectedBookForTrace.totalExchanges} intercambios`}
+                        size="small"
+                        variant="outlined"
+                      />
+                      <Chip
+                        label={`${selectedBookForTrace.daysHeld} días en tu poder`}
+                        size="small"
+                        color="primary"
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Timeline de intercambios */}
+              <Typography variant="h6" fontWeight="600" gutterBottom sx={{ mb: 2 }}>
+                Historial de Intercambios
+              </Typography>
+
+              <Box sx={{ position: 'relative', pl: 4 }}>
+                {/* Línea vertical del timeline */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 15,
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    bgcolor: 'grey.300'
+                  }}
+                />
+
+                {/* Items del timeline - Datos de ejemplo */}
+                {[
+                  {
+                    date: selectedBookForTrace.receivedDate,
+                    city: selectedBookForTrace.cities[selectedBookForTrace.cities.length - 1] || 'Ciudad',
+                    holder: 'Tú',
+                    action: 'Recibiste el libro',
+                    current: true
+                  },
+                  ...selectedBookForTrace.cities.slice(0, -1).reverse().map((city, idx) => ({
+                    date: new Date(new Date(selectedBookForTrace.receivedDate).getTime() - (idx + 1) * 15 * 24 * 60 * 60 * 1000).toISOString(),
+                    city,
+                    holder: `Lector ${idx + 2}`,
+                    action: 'Intercambio',
+                    current: false
+                  }))
+                ].map((item, index) => (
+                  <Box key={index} sx={{ mb: 3, position: 'relative' }}>
+                    {/* Punto en el timeline */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: -28,
+                        top: 8,
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        bgcolor: item.current ? 'primary.main' : 'grey.400',
+                        border: '2px solid white',
+                        boxShadow: 1
+                      }}
+                    />
+
+                    <Paper
+                      elevation={item.current ? 3 : 1}
+                      sx={{
+                        p: 2,
+                        bgcolor: item.current ? 'primary.50' : 'white',
+                        borderLeft: 3,
+                        borderColor: item.current ? 'primary.main' : 'grey.300'
+                      }}
+                    >
+                      <Typography variant="subtitle2" fontWeight="700" gutterBottom>
+                        {item.action}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                        {new Date(item.date).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                        <Chip
+                          label={item.city}
+                          size="small"
+                          icon={<LocationIcon sx={{ fontSize: 14 }} />}
+                        />
+                        <Chip
+                          label={item.holder}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Box>
+                    </Paper>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Estadísticas */}
+              <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                  Estadísticas del Recorrido
+                </Typography>
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid item xs={6} sm={3}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight="bold" color="primary">
+                        {selectedBookForTrace.totalExchanges}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Intercambios
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight="bold" color="primary">
+                        {selectedBookForTrace.cities.length}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Ciudades
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight="bold" color="primary">
+                        {selectedBookForTrace.avgReadingTime}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Días promedio
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant="h5" fontWeight="bold" color="primary">
+                        {Math.round((new Date().getTime() - new Date(selectedBookForTrace.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Días en circulación
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setTraceabilityDialogOpen(false)} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

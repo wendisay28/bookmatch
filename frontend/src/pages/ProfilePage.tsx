@@ -1,23 +1,88 @@
-import { Box, Container, Grid } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Container, Grid, CircularProgress } from '@mui/material';
 import { ProfileCover } from '../components/profile/ProfileCover';
 import { ProfileSidebar } from '../components/profile/ProfileSidebar';
 import { ProfileMainContent } from '../components/profile/ProfileMainContent';
 import { CurrentBookCard } from '../components/profile/CurrentBookCard';
+import { useAuth } from '../context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { getUserBadges, checkAndAwardBadges, Badge } from '../services/badgeService';
 
 const ProfilePage = () => {
-  const userData = {
-    name: "Sofía Martínez",
-    userId: "user-007-gabo",
-    memberSince: "Enero 2024",
-    photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-    coverUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&h=400&fit=crop",
-    quote: "No hay amigo más leal que un libro — Ernest Hemingway",
-    readerLevel: 4,
-    levelProgressPercent: 35,
-    booksLinked: 45,
-    totalExchanges: 23,
-    eventsAttended: 12
-  };
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.id));
+
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const userStats = {
+            booksLinked: data.booksLinked || 0,
+            totalExchanges: data.totalExchanges || 0,
+            eventsAttended: data.eventsAttended || 0
+          };
+
+          setUserData({
+            name: data.name || user.name,
+            userId: data.username || user.id.substring(0, 12),
+            memberSince: new Date(data.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+            photoUrl: data.photoUrl || user.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
+            coverUrl: data.coverUrl || "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1200&h=400&fit=crop",
+            quote: data.quote || "No hay amigo más leal que un libro",
+            readerLevel: data.readerLevel || 1,
+            levelProgressPercent: 35,
+            ...userStats
+          });
+
+          // Cargar insignias del usuario
+          const userBadges = await getUserBadges(user.id);
+          setBadges(userBadges);
+
+          // Verificar y otorgar nuevas insignias
+          const newBadges = await checkAndAwardBadges(user.id, userStats);
+          if (newBadges && newBadges.length > 0) {
+            console.log('¡Nuevas insignias obtenidas!', newBadges);
+            // Recargar insignias
+            const updatedBadges = await getUserBadges(user.id);
+            setBadges(updatedBadges);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <p>No se pudo cargar el perfil</p>
+      </Box>
+    );
+  }
 
   const myBooks = [
     { id: 1, title: 'Cien años de soledad', author: 'Gabriel García Márquez', code: 'TFT-001A', exchanges: 4, current: 'Laura V.' },
@@ -25,12 +90,7 @@ const ProfilePage = () => {
     { id: 3, title: 'Rayuela', author: 'Julio Cortázar', code: 'TFT-003C', exchanges: 7, current: 'María S.' }
   ];
 
-  const badges = [
-    { id: 1, name: "Explorador Literario", icon: "🧭", description: "Completó su primer intercambio", rarity: "uncommon" },
-    { id: 2, name: "Top Lector", icon: "👑", description: "Intercambió 10+ libros en un mes", rarity: "legendary" },
-    { id: 3, name: "Guardián de Libros", icon: "🛡️", description: "Tiempo promedio ejemplar", rarity: "epic" },
-    { id: 4, name: "Curador de Colección", icon: "📚", description: "Ha vinculado más de 30 libros", rarity: "rare" }
-  ];
+  // Las insignias ya vienen del estado
 
   const exchangeHistory = [
     { id: 1, title: 'Cien años de soledad', type: 'Intercambio', date: '15/07/2025', status: 'Completado' },
@@ -44,7 +104,10 @@ const ProfilePage = () => {
     author: 'Sun Tzu',
     code: 'TFT-777T',
     daysHeld: 45,
-    img: 'https://placehold.co/100x150/14B8A6/ffffff?text=ACTUAL'
+    img: 'https://placehold.co/100x150/14B8A6/ffffff?text=ACTUAL',
+    startDate: '20 Ago 2025',
+    nextReader: 'María González',
+    recommendedDays: 60
   };
 
   const handleViewTracking = () => {
@@ -59,13 +122,13 @@ const ProfilePage = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <ProfileCover coverUrl={userData.coverUrl} />
 
-      <Container maxWidth="lg" sx={{ mt: -8, position: 'relative', zIndex: 1 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+      <Container maxWidth="lg" sx={{ mt: { xs: -6, md: -8 }, position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
+        <Grid container spacing={{ xs: 2, md: 3 }}>
+          <Grid item xs={12} md={3}>
             <ProfileSidebar userData={userData} />
           </Grid>
 
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={9}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <CurrentBookCard
                 book={currentBook}

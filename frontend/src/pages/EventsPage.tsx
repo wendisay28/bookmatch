@@ -12,11 +12,21 @@ import {
   Chip,
   Box,
   IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
   Stack,
   Avatar,
   Divider,
+  Fab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tabs,
+  Tab,
+  CircularProgress,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -24,13 +34,22 @@ import {
   LocationOn as LocationIcon,
   Group as GroupIcon,
   AccessTime as TimeIcon,
-  ViewModule as GridViewIcon,
-  CalendarViewMonth as CalendarViewIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Share as ShareIcon,
+  Add as AddIcon,
+  Close as CloseIcon,
+  Image as ImageIcon,
+  TrendingUp as TrendingIcon,
+  Upcoming as UpcomingIcon,
+  EventAvailable as MyEventsIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { supabase } from '../config/supabase';
 
 // Mock data para eventos
 const mockEvents = [
@@ -49,6 +68,7 @@ const mockEvents = [
       name: 'María García',
       avatar: 'https://i.pravatar.cc/150?img=1',
     },
+    isPremium: false,
   },
   {
     id: 2,
@@ -65,6 +85,7 @@ const mockEvents = [
       name: 'Carlos Ruiz',
       avatar: 'https://i.pravatar.cc/150?img=3',
     },
+    isPremium: true,
   },
   {
     id: 3,
@@ -81,6 +102,7 @@ const mockEvents = [
       name: 'Ana Martínez',
       avatar: 'https://i.pravatar.cc/150?img=5',
     },
+    isPremium: false,
   },
   {
     id: 4,
@@ -97,10 +119,11 @@ const mockEvents = [
       name: 'Luis Fernández',
       avatar: 'https://i.pravatar.cc/150?img=7',
     },
+    isPremium: false,
   },
   {
     id: 5,
-    title: 'Noche de Poesía',
+    title: 'Noche de Poesía Premium',
     description: 'Una velada especial donde poetas locales comparten sus versos más profundos.',
     date: '2024-10-28',
     time: '20:00',
@@ -113,44 +136,219 @@ const mockEvents = [
       name: 'Sofia León',
       avatar: 'https://i.pravatar.cc/150?img=9',
     },
-  },
-  {
-    id: 6,
-    title: 'Maratón de Lectura',
-    description: 'Un día completo dedicado a la lectura continua de obras clásicas y contemporáneas.',
-    date: '2024-11-02',
-    time: '10:00',
-    location: 'Plaza de la Literatura',
-    attendees: 56,
-    maxAttendees: 80,
-    category: 'Maratón',
-    image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80',
-    host: {
-      name: 'Pedro Sánchez',
-      avatar: 'https://i.pravatar.cc/150?img=11',
-    },
+    isPremium: true,
   },
 ];
 
-const categories = ['Todos', 'Club de Lectura', 'Taller', 'Intercambio', 'Presentación', 'Poesía', 'Maratón'];
+const categories = ['Todos', 'Club de Lectura', 'Taller', 'Intercambio', 'Presentación', 'Poesía'];
 
 const EventsPage = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
+  const [currentTab, setCurrentTab] = useState(0);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    category: '',
+    maxAttendees: '',
+    isPremium: false,
+  });
 
-  const filteredEvents = mockEvents.filter(event => {
+  // Cargar eventos desde Firestore
+  React.useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const eventsQuery = query(collection(db, 'events'), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(eventsQuery);
+        const loadedEvents = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEvents([...mockEvents, ...loadedEvents]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading events:', error);
+        setEvents(mockEvents);
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
+
+  const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || event.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const toggleFavorite = (eventId: number) => {
+  const toggleFavorite = (eventId: string | number) => {
     setFavorites(prev =>
-      prev.includes(eventId) ? prev.filter(id => id !== eventId) : [...prev, eventId]
+      prev.includes(eventId as number) ? prev.filter(id => id !== eventId) : [...prev, eventId as number]
     );
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    if (!user) {
+      alert('Debes iniciar sesión para crear un evento');
+      return;
+    }
+
+    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location || !newEvent.category) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setCreating(true);
+
+    try {
+      let imageUrl = 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80';
+
+      // Subir imagen a Supabase Storage si existe
+      if (imageFile) {
+        try {
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          console.log('Uploading image to Supabase...', filePath);
+          console.log('File size:', (imageFile.size / 1024 / 1024).toFixed(2), 'MB');
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('events')
+            .upload(filePath, imageFile, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading image to Supabase:', uploadError);
+            console.error('Error details:', JSON.stringify(uploadError, null, 2));
+            // No lanzar error, solo usar imagen por defecto
+            console.warn('⚠️ Using default image instead. Please create the "events" bucket in Supabase Storage.');
+          } else {
+            // Obtener URL pública de la imagen
+            const { data: { publicUrl } } = supabase.storage
+              .from('events')
+              .getPublicUrl(filePath);
+
+            imageUrl = publicUrl;
+            console.log('✅ Image uploaded successfully:', imageUrl);
+          }
+        } catch (imgError) {
+          console.error('❌ Image upload failed:', imgError);
+          console.warn('⚠️ Continuing with default image');
+          // Continuar con imagen por defecto
+        }
+      }
+
+      // Crear evento en Firestore
+      const eventData = {
+        title: newEvent.title,
+        description: newEvent.description,
+        date: newEvent.date,
+        time: newEvent.time,
+        location: newEvent.location,
+        category: newEvent.category,
+        maxAttendees: parseInt(newEvent.maxAttendees) || 50,
+        attendees: 0,
+        isPremium: newEvent.isPremium,
+        image: imageUrl,
+        host: {
+          name: user.name,
+          avatar: user.avatar || 'https://i.pravatar.cc/150?img=1',
+          userId: user.id,
+        },
+        createdAt: Timestamp.now(),
+      };
+
+      const docRef = await addDoc(collection(db, 'events'), eventData);
+
+      // Agregar el evento a la lista local
+      setEvents(prev => [{
+        id: docRef.id,
+        ...eventData,
+      }, ...prev]);
+
+      // Limpiar formulario
+      setOpenCreateDialog(false);
+      setNewEvent({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        location: '',
+        category: '',
+        maxAttendees: '',
+        isPremium: false,
+      });
+      setImageFile(null);
+      setImagePreview('');
+
+      alert('¡Evento creado exitosamente!');
+    } catch (error: any) {
+      console.error('Error creating event:', error);
+      const errorMessage = error?.message || error?.toString() || 'Error desconocido';
+      alert(`Error al crear el evento: ${errorMessage}`);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string, eventImage: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+      return;
+    }
+
+    try {
+      // Eliminar de Firestore
+      await deleteDoc(doc(db, 'events', eventId));
+
+      // Eliminar imagen de Supabase si no es una imagen por defecto
+      if (eventImage && !eventImage.includes('unsplash.com')) {
+        try {
+          const imagePath = eventImage.split('/').pop();
+          if (imagePath) {
+            await supabase.storage.from('events').remove([imagePath]);
+          }
+        } catch (imgError) {
+          console.error('Error deleting image:', imgError);
+          // Continuar aunque falle la eliminación de la imagen
+        }
+      }
+
+      // Eliminar de la lista local
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+
+      alert('Evento eliminado exitosamente');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Error al eliminar el evento. Por favor intenta de nuevo.');
+    }
   };
 
   const getAttendancePercentage = (attendees: number, maxAttendees: number) => {
@@ -161,407 +359,653 @@ const EventsPage = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #F7F9FC 0%, #E8F0FE 100%)',
-        pt: { xs: 10, sm: 12 },
-        pb: { xs: 10, md: 4 },
+        background: '#FAFAFA',
+        pt: '72px',
+        pb: 4,
       }}
     >
       <Container maxWidth="xl">
-        {/* Hero Section */}
-        <Box
-          component={motion.div}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          sx={{ mb: 6, textAlign: 'center' }}
-        >
-          <Typography
-            variant="h3"
+        {/* Header with Tabs */}
+        <Box sx={{ mb: 1.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 800,
+                color: '#1A1A1A',
+              }}
+            >
+              Eventos
+            </Typography>
+          </Box>
+
+          <Tabs
+            value={currentTab}
+            onChange={(e, newValue) => setCurrentTab(newValue)}
             sx={{
-              fontWeight: 800,
-              mb: 2,
-              background: 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              mb: 1,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                minHeight: 48,
+                color: '#6B7280',
+                '&.Mui-selected': {
+                  color: '#2e6ff2',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#2e6ff2',
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+              },
             }}
           >
-            Eventos Literarios
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-            Conecta con otros amantes de la lectura y participa en experiencias únicas
-          </Typography>
-        </Box>
+            <Tab icon={<TrendingIcon />} iconPosition="start" label="Destacados" />
+            <Tab icon={<UpcomingIcon />} iconPosition="start" label="Próximos" />
+            <Tab icon={<MyEventsIcon />} iconPosition="start" label="Mis Eventos" />
+          </Tabs>
 
-        {/* Search and Filters */}
-        <Box
-          component={motion.div}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          sx={{
-            mb: 4,
-            p: 3,
-            background: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: 4,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-          }}
-        >
-          <Stack spacing={3}>
-            {/* Search Bar */}
-            <TextField
-              fullWidth
-              placeholder="Buscar eventos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'primary.main' }} />
-                  </InputAdornment>
-                ),
-                sx: {
-                  borderRadius: 3,
-                  backgroundColor: 'background.paper',
-                  '& fieldset': { border: 'none' },
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          {/* Search Bar */}
+          <TextField
+            fullWidth
+            placeholder="Buscar eventos por nombre, ubicación o categoría..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: '#9CA3AF' }} />
+                </InputAdornment>
+              ),
+              sx: {
+                borderRadius: 2,
+                backgroundColor: 'white',
+                border: '1px solid #E5E7EB',
+                '& fieldset': { border: 'none' },
+                '&:hover': {
+                  borderColor: '#2e6ff2',
                 },
-              }}
-            />
+                '&.Mui-focused': {
+                  borderColor: '#2e6ff2',
+                  boxShadow: '0 0 0 3px rgba(46, 111, 242, 0.1)',
+                },
+              },
+            }}
+          />
 
-            {/* Categories and View Toggle */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                {categories.map((category) => (
-                  <Chip
-                    key={category}
-                    label={category}
-                    onClick={() => setSelectedCategory(category)}
-                    sx={{
-                      fontWeight: 600,
-                      transition: 'all 0.3s ease',
-                      ...(selectedCategory === category
-                        ? {
-                            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-                            color: 'white',
-                            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
-                          }
-                        : {
-                            backgroundColor: 'white',
-                            '&:hover': {
-                              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                              transform: 'translateY(-2px)',
-                            },
-                          }),
-                    }}
-                  />
-                ))}
-              </Stack>
-
-              <ToggleButtonGroup
-                value={viewMode}
-                exclusive
-                onChange={(e, newMode) => newMode && setViewMode(newMode)}
+          {/* Categories */}
+          <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            {categories.map((category) => (
+              <Chip
+                key={category}
+                label={category}
+                onClick={() => setSelectedCategory(category)}
                 sx={{
-                  backgroundColor: 'white',
+                  fontWeight: 600,
                   borderRadius: 2,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  '& .MuiToggleButton-root': {
-                    border: 'none',
-                    '&.Mui-selected': {
-                      background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
-                      },
-                    },
-                  },
+                  border: '1px solid #E5E7EB',
+                  transition: 'all 0.2s ease',
+                  ...(selectedCategory === category
+                    ? {
+                        backgroundColor: '#2e6ff2',
+                        color: 'white',
+                        borderColor: '#2e6ff2',
+                      }
+                    : {
+                        backgroundColor: 'white',
+                        color: '#6B7280',
+                        '&:hover': {
+                          backgroundColor: '#F3F4F6',
+                          borderColor: '#2e6ff2',
+                        },
+                      }),
                 }}
-              >
-                <ToggleButton value="grid">
-                  <GridViewIcon sx={{ mr: 1 }} />
-                  Cuadrícula
-                </ToggleButton>
-                <ToggleButton value="calendar">
-                  <CalendarViewIcon sx={{ mr: 1 }} />
-                  Calendario
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+              />
+            ))}
           </Stack>
         </Box>
 
         {/* Events Grid */}
-        {viewMode === 'grid' && (
-          <Grid container spacing={3}>
-            {filteredEvents.map((event, index) => (
-              <Grid item xs={12} sm={6} lg={4} key={event.id}>
-                <Card
-                  component={motion.div}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-12px)',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-                    },
-                  }}
-                >
-                  {/* Image */}
-                  <Box sx={{ position: 'relative', paddingTop: '60%', overflow: 'hidden' }}>
-                    <CardMedia
-                      component="img"
-                      image={event.image}
-                      alt={event.title}
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        transition: 'transform 0.6s ease',
-                        '&:hover': {
-                          transform: 'scale(1.1)',
-                        },
-                      }}
-                    />
+        <Grid container spacing={3}>
+          {filteredEvents.map((event, index) => (
+            <Grid item xs={12} sm={6} lg={4} key={event.id}>
+              <Card
+                component={motion.div}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  border: '1px solid #E5E7EB',
+                  boxShadow: 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+                    borderColor: '#2e6ff2',
+                  },
+                }}
+              >
+                {/* Image */}
+                <Box sx={{ position: 'relative', paddingTop: '56.25%', overflow: 'hidden' }}>
+                  <CardMedia
+                    component="img"
+                    image={event.image}
+                    alt={event.title}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+
+                  {event.isPremium && (
                     <Box
                       sx={{
                         position: 'absolute',
-                        top: 16,
-                        left: 16,
+                        top: 12,
+                        left: 12,
                       }}
                     >
                       <Chip
-                        label={event.category}
+                        label="Premium"
+                        size="small"
                         sx={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          backdropFilter: 'blur(12px)',
+                          background: 'linear-gradient(135deg, #53f682 0%, #2ecc71 100%)',
+                          color: 'white',
                           fontWeight: 700,
-                          fontSize: '0.75rem',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          fontSize: '0.7rem',
                         }}
                       />
                     </Box>
-                    <Box
+                  )}
+
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      display: 'flex',
+                      gap: 1,
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => toggleFavorite(event.id)}
                       sx={{
-                        position: 'absolute',
-                        top: 16,
-                        right: 16,
-                        display: 'flex',
-                        gap: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(8px)',
+                        '&:hover': {
+                          backgroundColor: 'white',
+                        },
                       }}
                     >
-                      <IconButton
-                        onClick={() => toggleFavorite(event.id)}
-                        sx={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          backdropFilter: 'blur(12px)',
-                          '&:hover': {
-                            backgroundColor: 'white',
-                            transform: 'scale(1.1)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {favorites.includes(event.id) ? (
-                          <FavoriteIcon sx={{ color: '#3B82F6' }} />
-                        ) : (
-                          <FavoriteBorderIcon />
-                        )}
-                      </IconButton>
-                      <IconButton
-                        sx={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          backdropFilter: 'blur(12px)',
-                          '&:hover': {
-                            backgroundColor: 'white',
-                            transform: 'scale(1.1)',
-                          },
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        <ShareIcon />
-                      </IconButton>
-                    </Box>
+                      {favorites.includes(event.id) ? (
+                        <FavoriteIcon sx={{ fontSize: 18, color: '#EF4444' }} />
+                      ) : (
+                        <FavoriteBorderIcon sx={{ fontSize: 18 }} />
+                      )}
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      sx={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(8px)',
+                        '&:hover': {
+                          backgroundColor: 'white',
+                        },
+                      }}
+                    >
+                      <ShareIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
                   </Box>
+                </Box>
 
-                  {/* Content */}
-                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 700,
-                        mb: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {event.title}
-                    </Typography>
+                {/* Content */}
+                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+                  <Chip
+                    label={event.category}
+                    size="small"
+                    sx={{
+                      mb: 1.5,
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      backgroundColor: '#F3F4F6',
+                      color: '#6B7280',
+                      height: 24,
+                    }}
+                  />
 
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        mb: 2,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {event.description}
-                    </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 1,
+                      fontSize: '1.1rem',
+                      color: '#1A1A1A',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {event.title}
+                  </Typography>
 
-                    <Divider sx={{ my: 2 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mb: 2,
+                      color: '#6B7280',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {event.description}
+                  </Typography>
 
-                    <Stack spacing={1.5}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarIcon sx={{ fontSize: 18, color: 'primary.main' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {new Date(event.date).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'long',
-                          })}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TimeIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {event.time} hrs
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <LocationIcon sx={{ fontSize: 18, color: 'error.main' }} />
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {event.location}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <GroupIcon sx={{ fontSize: 18, color: 'success.main' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {event.attendees}/{event.maxAttendees} asistentes
-                        </Typography>
-                      </Box>
-                    </Stack>
-
-                    {/* Progress Bar */}
-                    <Box sx={{ mt: 2 }}>
-                      <Box
-                        sx={{
-                          width: '100%',
-                          height: 6,
-                          backgroundColor: 'rgba(0,0,0,0.08)',
-                          borderRadius: 3,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: `${getAttendancePercentage(event.attendees, event.maxAttendees)}%`,
-                            height: '100%',
-                            background: 'linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%)',
-                            transition: 'width 0.6s ease',
-                          }}
-                        />
-                      </Box>
+                  <Stack spacing={1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CalendarIcon sx={{ fontSize: 16, color: '#6B7280' }} />
+                      <Typography variant="body2" sx={{ color: '#1A1A1A', fontWeight: 500 }}>
+                        {new Date(event.date).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#6B7280', ml: 'auto' }}>
+                        {event.time}
+                      </Typography>
                     </Box>
 
-                    {/* Host Info */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LocationIcon sx={{ fontSize: 16, color: '#6B7280' }} />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#6B7280',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {event.location}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <GroupIcon sx={{ fontSize: 16, color: '#6B7280' }} />
+                      <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                        {event.attendees || 0} / {event.maxAttendees} asistentes
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  {/* Host Info */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Avatar
                         src={event.host.avatar}
                         alt={event.host.name}
                         sx={{
-                          width: 32,
-                          height: 32,
-                          border: '2px solid white',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          width: 28,
+                          height: 28,
                         }}
                       />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Organizado por
-                        </Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {event.host.name}
-                        </Typography>
-                      </Box>
+                      <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '0.875rem' }}>
+                        {event.host.name}
+                      </Typography>
                     </Box>
+                  </Box>
 
-                    {/* Button */}
+                  {/* Buttons */}
+                  {user && event.host?.userId === user.id ? (
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        sx={{
+                          py: 1.2,
+                          borderRadius: 2,
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          backgroundColor: '#2e6ff2',
+                          boxShadow: 'none',
+                          '&:hover': {
+                            backgroundColor: '#1e5fd9',
+                            boxShadow: 'none',
+                          },
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => handleDeleteEvent(event.id, event.image)}
+                        sx={{
+                          py: 1.2,
+                          px: 2,
+                          borderRadius: 2,
+                          fontWeight: 600,
+                          textTransform: 'none',
+                          borderColor: '#EF4444',
+                          color: '#EF4444',
+                          minWidth: 'auto',
+                          '&:hover': {
+                            backgroundColor: '#FEE2E2',
+                            borderColor: '#DC2626',
+                          },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </Button>
+                    </Box>
+                  ) : (
                     <Button
                       fullWidth
                       variant="contained"
                       sx={{
                         mt: 2,
-                        py: 1.5,
-                        borderRadius: 3,
-                        fontWeight: 700,
-                        background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                        py: 1.2,
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        backgroundColor: '#2e6ff2',
+                        boxShadow: 'none',
                         '&:hover': {
-                          background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
-                          boxShadow: '0 8px 20px rgba(59, 130, 246, 0.4)',
-                          transform: 'translateY(-2px)',
+                          backgroundColor: '#1e5fd9',
+                          boxShadow: 'none',
                         },
-                        transition: 'all 0.3s ease',
                       }}
                     >
-                      Unirme al Evento
+                      Ver detalles
                     </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
 
-        {/* Calendar View Placeholder */}
-        {viewMode === 'calendar' && (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 10,
-              background: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: 4,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            }}
-          >
-            <CalendarViewIcon sx={{ fontSize: 80, color: 'primary.main', mb: 2 }} />
-            <Typography variant="h5" fontWeight={700} gutterBottom>
-              Vista de Calendario
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Próximamente: Visualiza todos los eventos en un calendario interactivo
-            </Typography>
-          </Box>
-        )}
+        {/* Floating Action Button */}
+        <Fab
+          color="primary"
+          aria-label="crear evento"
+          onClick={() => setOpenCreateDialog(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 90,
+            right: 24,
+            background: 'linear-gradient(135deg, #2e6ff2 0%, #53f682 100%)',
+            boxShadow: '0 8px 24px rgba(46, 111, 242, 0.4)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #1e5fd9 0%, #2ecc71 100%)',
+              boxShadow: '0 12px 32px rgba(46, 111, 242, 0.5)',
+            },
+          }}
+        >
+          <AddIcon />
+        </Fab>
+
+        {/* Create Event Dialog */}
+        <Dialog
+          open={openCreateDialog}
+          onClose={() => setOpenCreateDialog(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            },
+          }}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h5" fontWeight={700}>
+                Crear Evento
+              </Typography>
+              <IconButton onClick={() => setOpenCreateDialog(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+
+          <DialogContent sx={{ pt: 2 }}>
+            <Stack spacing={2.5}>
+              {/* Image Upload */}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                style={{ display: 'none' }}
+                id="event-image-upload"
+              />
+              <label htmlFor="event-image-upload">
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 160,
+                    borderRadius: 2,
+                    border: '2px dashed #E5E7EB',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#F9FAFB',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    backgroundImage: imagePreview ? `url(${imagePreview})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    position: 'relative',
+                    '&:hover': {
+                      borderColor: '#2e6ff2',
+                      backgroundColor: '#F3F4F6',
+                    },
+                  }}
+                >
+                  {!imagePreview && (
+                    <>
+                      <ImageIcon sx={{ fontSize: 40, color: '#9CA3AF', mb: 1 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Haz clic para subir imagen del evento
+                      </Typography>
+                    </>
+                  )}
+                  {imagePreview && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        borderRadius: 1,
+                        px: 1,
+                        py: 0.5,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: 'white' }}>
+                        Cambiar imagen
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </label>
+
+              <TextField
+                fullWidth
+                label="Título del evento"
+                value={newEvent.title}
+                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                required
+              />
+
+              <TextField
+                fullWidth
+                label="Descripción"
+                value={newEvent.description}
+                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                multiline
+                rows={3}
+                required
+              />
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Fecha"
+                  type="date"
+                  value={newEvent.date}
+                  onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                />
+
+                <TextField
+                  fullWidth
+                  label="Hora"
+                  type="time"
+                  value={newEvent.time}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                  required
+                />
+              </Box>
+
+              <TextField
+                fullWidth
+                label="Ubicación"
+                value={newEvent.location}
+                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LocationIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                required
+              />
+
+              <FormControl fullWidth required>
+                <InputLabel>Categoría</InputLabel>
+                <Select
+                  value={newEvent.category}
+                  onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                  label="Categoría"
+                >
+                  {categories.filter(c => c !== 'Todos').map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                label="Máximo de asistentes"
+                type="number"
+                value={newEvent.maxAttendees}
+                onChange={(e) => setNewEvent({ ...newEvent, maxAttendees: e.target.value })}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <GroupIcon />
+                    </InputAdornment>
+                  ),
+                }}
+                required
+              />
+
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                      Evento Premium
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Solo para suscriptores premium
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={newEvent.isPremium ? 'Activado' : 'Desactivado'}
+                    onClick={() => setNewEvent({ ...newEvent, isPremium: !newEvent.isPremium })}
+                    sx={{
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      ...(newEvent.isPremium
+                        ? {
+                            background: 'linear-gradient(135deg, #53f682 0%, #2ecc71 100%)',
+                            color: 'white',
+                          }
+                        : {
+                            backgroundColor: 'white',
+                            border: '1px solid #E5E7EB',
+                          }),
+                    }}
+                  />
+                </Box>
+              </Box>
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ p: 3, pt: 2 }}>
+            <Button
+              onClick={() => setOpenCreateDialog(false)}
+              disabled={creating}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                color: '#6B7280',
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateEvent}
+              variant="contained"
+              disabled={creating}
+              startIcon={creating ? <CircularProgress size={20} color="inherit" /> : null}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                background: 'linear-gradient(135deg, #2e6ff2 0%, #53f682 100%)',
+                boxShadow: 'none',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1e5fd9 0%, #2ecc71 100%)',
+                  boxShadow: 'none',
+                },
+              }}
+            >
+              {creating ? 'Creando...' : 'Crear Evento'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

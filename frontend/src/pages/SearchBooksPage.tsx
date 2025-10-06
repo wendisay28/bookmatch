@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
   Container,
   Typography,
+  Box,
   TextField,
   InputAdornment,
-  Stack,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
   Button,
+  Chip,
   CircularProgress,
   Alert,
   Snackbar,
@@ -14,24 +19,22 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions,
-  ToggleButtonGroup,
-  ToggleButton
+  DialogActions
 } from '@mui/material';
 import {
   Search as SearchIcon,
+  LocationOn as LocationIcon,
   SwapHoriz as ExchangeIcon,
-  ViewModule as GridViewIcon,
-  ViewList as ListViewIcon
+  CheckCircle as AvailableIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import {
+  searchAvailableBooks,
   sendExchangeRequest,
   Book
 } from '../services/matchService';
-import { LibraryBookCard } from '../components/library/LibraryBookCard';
 
-const LibraryPage = () => {
+const SearchBooksPage = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [books, setBooks] = useState<Book[]>([]);
@@ -40,118 +43,11 @@ const LibraryPage = () => {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
   const [sending, setSending] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'info' });
-
-  // Datos de ejemplo para mostrar el diseño
-  const mockBooks: Book[] = [
-    {
-      id: '1',
-      code: 'TFT-345F',
-      title: 'La sombra del viento',
-      author: 'Carlos Ruiz Zafón',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/14B8A6/ffffff?text=Sombra',
-      contributedBy: 'user1',
-      currentHolder: 'user2',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 3,
-      cities: ['Barcelona', 'Madrid'],
-      avgReadingTime: 12,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      code: 'TFT-789G',
-      title: 'Drácula',
-      author: 'Bram Stoker',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/DC2626/ffffff?text=Dracula',
-      contributedBy: 'user2',
-      currentHolder: 'user3',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 7,
-      cities: ['Londres', 'Bogotá'],
-      avgReadingTime: 8,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '3',
-      code: 'TFT-123H',
-      title: 'Crimen y castigo',
-      author: 'Fiódor Dostoyevski',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/8B5CF6/ffffff?text=Crimen',
-      contributedBy: 'user3',
-      currentHolder: 'user4',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 5,
-      cities: ['Moscú', 'Ciudad de México'],
-      avgReadingTime: 15,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '4',
-      code: 'TFT-999K',
-      title: 'La casa de los espíritus',
-      author: 'Isabel Allende',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/059669/ffffff?text=Casa',
-      contributedBy: 'user4',
-      currentHolder: 'user5',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 4,
-      cities: ['Santiago', 'Lima'],
-      avgReadingTime: 10,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '5',
-      code: 'TFT-456J',
-      title: 'Cien años de soledad',
-      author: 'Gabriel García Márquez',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/F59E0B/000000?text=Cien',
-      contributedBy: 'user5',
-      currentHolder: 'user6',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 12,
-      cities: ['Bogotá', 'Medellín', 'Cartagena'],
-      avgReadingTime: 14,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      id: '6',
-      code: 'TFT-222M',
-      title: '1984',
-      author: 'George Orwell',
-      isbn: '',
-      coverUrl: 'https://placehold.co/400x600/374151/ffffff?text=1984',
-      contributedBy: 'user6',
-      currentHolder: 'user7',
-      isAvailable: true,
-      availableDate: null,
-      totalExchanges: 8,
-      cities: ['Londres', 'París'],
-      avgReadingTime: 9,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ];
 
   // Cargar libros disponibles al montar
   useEffect(() => {
@@ -161,25 +57,7 @@ const LibraryPage = () => {
   const loadBooks = async (search?: string) => {
     try {
       setLoading(true);
-
-      // Por ahora usar datos mock, descomentar para usar datos reales de Firestore
-      // const result = await searchAvailableBooks(search);
-
-      // Simular carga
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      let result = mockBooks;
-
-      // Filtrar por término de búsqueda si existe
-      if (search) {
-        const term = search.toLowerCase();
-        result = mockBooks.filter(book =>
-          book.title.toLowerCase().includes(term) ||
-          book.author.toLowerCase().includes(term) ||
-          book.code.toLowerCase().includes(term)
-        );
-      }
-
+      const result = await searchAvailableBooks(search);
       setBooks(result);
     } catch (error) {
       console.error('Error al buscar libros:', error);
@@ -236,23 +114,34 @@ const LibraryPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header y Buscador */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" fontWeight="bold" gutterBottom>
-          Biblioteca Comunitaria
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          sx={{
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, #2e6ff2 0%, #53f682 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: 2
+          }}
+        >
+          Buscar Libros Disponibles
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Explora libros disponibles para intercambio en la comunidad TFT
+          Descubre libros disponibles para intercambio en la comunidad TFT
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Box component="form" onSubmit={handleSearch}>
           <TextField
             fullWidth
             placeholder="Buscar por título, autor o código TFT..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch(e as any)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -274,25 +163,14 @@ const LibraryPage = () => {
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                bgcolor: 'background.paper'
+                borderRadius: 3,
+                bgcolor: 'background.paper',
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
               }
             }}
           />
-
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newMode) => newMode && setViewMode(newMode)}
-            aria-label="vista"
-          >
-            <ToggleButton value="list" aria-label="vista lista">
-              <ListViewIcon />
-            </ToggleButton>
-            <ToggleButton value="grid" aria-label="vista cuadrícula">
-              <GridViewIcon />
-            </ToggleButton>
-          </ToggleButtonGroup>
         </Box>
       </Box>
 
@@ -320,80 +198,92 @@ const LibraryPage = () => {
                 {books.length} libro{books.length !== 1 ? 's' : ''} disponible{books.length !== 1 ? 's' : ''}
               </Typography>
 
-              {/* Vista de lista */}
-              {viewMode === 'list' && (
-                <Stack spacing={3}>
-                  {books.map((book) => (
-                    <LibraryBookCard
-                      key={book.id}
-                      book={book}
-                      onRequest={handleRequestBook}
-                    />
-                  ))}
-                </Stack>
-              )}
-
-              {/* Vista de cuadrícula */}
-              {viewMode === 'grid' && (
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: '1fr',
-                      sm: 'repeat(2, 1fr)',
-                      md: 'repeat(3, 1fr)',
-                      lg: 'repeat(4, 1fr)'
-                    },
-                    gap: 3
-                  }}
-                >
-                  {books.map((book) => (
-                    <Box
-                      key={book.id}
+              <Grid container spacing={3}>
+                {books.map((book) => (
+                  <Grid item xs={12} sm={6} md={4} key={book.id}>
+                    <Card
+                      elevation={2}
                       sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        overflow: 'hidden',
-                        transition: 'all 0.3s',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'all 0.3s ease',
                         '&:hover': {
+                          transform: 'translateY(-4px)',
                           boxShadow: 4,
-                          transform: 'translateY(-4px)'
                         }
                       }}
                     >
-                      <Box
+                      <CardMedia
                         component="img"
-                        src={book.coverUrl}
+                        height="280"
+                        image={book.coverUrl}
                         alt={book.title}
-                        sx={{
-                          width: '100%',
-                          height: 280,
-                          objectFit: 'cover',
-                          bgcolor: 'grey.100'
-                        }}
+                        sx={{ objectFit: 'cover' }}
                       />
-                      <Box sx={{ p: 2 }}>
+                      <CardContent sx={{ flexGrow: 1 }}>
+                        <Box sx={{ mb: 1 }}>
+                          <Chip
+                            label={book.code}
+                            size="small"
+                            sx={{
+                              fontFamily: 'monospace',
+                              bgcolor: 'grey.100',
+                              color: 'grey.700',
+                              fontWeight: 600
+                            }}
+                          />
+                        </Box>
+
                         <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontFamily: 'monospace',
-                            color: 'text.secondary',
-                            mb: 1
-                          }}
+                          gutterBottom
+                          variant="h6"
+                          component="h2"
+                          sx={{ fontWeight: 700, mb: 0.5 }}
                         >
-                          {book.code}
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5 }}>
                           {book.title}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 2 }}
+                        >
                           {book.author}
                         </Typography>
+
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                          <Chip
+                            icon={<AvailableIcon sx={{ fontSize: 16 }} />}
+                            label="Disponible"
+                            size="small"
+                            color="success"
+                            sx={{ fontWeight: 600 }}
+                          />
+                          {book.totalExchanges > 0 && (
+                            <Chip
+                              icon={<ExchangeIcon sx={{ fontSize: 16 }} />}
+                              label={`${book.totalExchanges} intercambios`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
+
+                        {book.cities.length > 0 && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <LocationIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              {book.cities.join(', ')}
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+
+                      <CardActions sx={{ p: 2, pt: 0 }}>
                         <Button
                           fullWidth
                           variant="contained"
-                          size="small"
                           startIcon={<ExchangeIcon />}
                           onClick={() => handleRequestBook(book)}
                           sx={{
@@ -405,11 +295,11 @@ const LibraryPage = () => {
                         >
                           Solicitar
                         </Button>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              )}
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
             </>
           )}
         </>
@@ -471,4 +361,4 @@ const LibraryPage = () => {
   );
 };
 
-export default LibraryPage;
+export default SearchBooksPage;

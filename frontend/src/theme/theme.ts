@@ -21,23 +21,23 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#3B82F6', // Bright blue
-      light: '#60A5FA',
-      dark: '#2563EB',
+      main: '#2e6ff2', // Ruedelo blue
+      light: '#5e8ff5',
+      dark: '#1a4fdb',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#8B5CF6', // Purple-blue
-      light: '#A78BFA',
-      dark: '#7C3AED',
-      contrastText: '#FFFFFF',
+      main: '#53f682', // Ruedelo green
+      light: '#7af89f',
+      dark: '#2ee165',
+      contrastText: '#333333',
     },
     background: {
-      default: '#F0F9FF', // Very light blue
+      default: '#F5F5F5', // Light gray
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#1E293B',
+      primary: '#333333',
       secondary: '#64748B',
     },
     success: {
@@ -124,17 +124,17 @@ const theme = createTheme({
           },
         },
         contained: {
-          background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+          background: 'linear-gradient(135deg, #2e6ff2 0%, #5e8ff5 100%)',
           '&:hover': {
-            background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
-            boxShadow: '0 16px 32px rgba(59, 130, 246, 0.4)',
+            background: 'linear-gradient(135deg, #1a4fdb 0%, #2e6ff2 100%)',
+            boxShadow: '0 16px 32px rgba(46, 111, 242, 0.4)',
           },
         },
         outlined: {
           borderWidth: 2,
           '&:hover': {
             borderWidth: 2,
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            backgroundColor: 'rgba(46, 111, 242, 0.08)',
           },
         },
       },

@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
   TextField,
   Button,
-  Paper,
+  Card,
+  CardContent,
   Link,
   Alert,
   FormControlLabel,
   Checkbox,
-  Grid,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -22,8 +26,11 @@ const RegisterPage = () => {
     confirmPassword: '',
     acceptTerms: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, checked, type } = e.target;
@@ -48,163 +55,233 @@ const RegisterPage = () => {
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Aquí irá la lógica de registro con Supabase
-      console.log('Registrando usuario:', {
-        email: formData.email,
+      await register({
         name: formData.name,
+        email: formData.email,
+        password: formData.password,
       });
-      
-      // Simulando una llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Redirigir al login después del registro exitoso
-      navigate('/login', { 
-        state: { 
-          message: '¡Registro exitoso! Por favor inicia sesión.' 
-        } 
-      });
-    } catch (err) {
-      setError('Error al registrar el usuario. Inténtalo de nuevo.');
+      // El navigate se hace automáticamente en el AuthContext
+    } catch (err: any) {
+      setError(err.message || 'Error al registrar el usuario. Inténtalo de nuevo.');
       console.error('Error en registro:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Box
-        sx={{
-          marginY: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h4" sx={{ mb: 1 }}>
-          Crear Cuenta
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 4, textAlign: 'center' }}>
-          Únete a BookMatch y descubre tu próxima lectura favorita
-        </Typography>
-        
-        <Paper
-          elevation={3}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: '#f5f5f5',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="md">
+        <Card
           sx={{
-            p: 4,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid #e0e0e0',
           }}
         >
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
-              <Box>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Typography variant="h4" fontWeight="bold" sx={{ color: '#333333', mb: 1 }}>
+                Crear Cuenta en Ruedelo
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Únete y descubre tu próxima lectura favorita
+              </Typography>
+            </Box>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
                 <TextField
-                  autoComplete="given-name"
-                  name="name"
-                  required
                   fullWidth
-                  id="name"
                   label="Nombre Completo"
-                  autoFocus
+                  name="name"
                   value={formData.name}
                   onChange={handleChange}
-                />
-              </Box>
-              <Box>
-                <TextField
                   required
+                  autoFocus
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person sx={{ color: '#2e6ff2' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
                   fullWidth
-                  id="email"
                   label="Correo Electrónico"
+                  type="email"
                   name="email"
-                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
-                />
-              </Box>
-              <Box>
-                <TextField
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email sx={{ color: '#2e6ff2' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
                   fullWidth
-                  name="password"
                   label="Contraseña"
-                  type="password"
-                  id="password"
-                  autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
                   value={formData.password}
                   onChange={handleChange}
-                />
-              </Box>
-              <Box>
-                <TextField
                   required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock sx={{ color: '#2e6ff2' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                <TextField
                   fullWidth
-                  name="confirmPassword"
                   label="Confirmar Contraseña"
-                  type="password"
-                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock sx={{ color: '#2e6ff2' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          edge="end"
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
+
+                <Box sx={{ gridColumn: '1 / -1' }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        name="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onChange={handleChange}
+                        sx={{
+                          color: '#2e6ff2',
+                          '&.Mui-checked': {
+                            color: '#2e6ff2',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" color="text.secondary">
+                        Acepto los{' '}
+                        <Link href="#" sx={{ color: '#2e6ff2' }}>
+                          Términos de Servicio
+                        </Link>{' '}
+                        y la{' '}
+                        <Link href="#" sx={{ color: '#2e6ff2' }}>
+                          Política de Privacidad
+                        </Link>
+                      </Typography>
+                    }
+                  />
+                </Box>
               </Box>
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox 
-                      name="acceptTerms" 
-                      color="primary" 
-                      checked={formData.acceptTerms}
-                      onChange={handleChange}
-                    />
-                  }
-                  label={
-                    <Typography variant="body2">
-                      Acepto los{' '}
-                      <Link href="#" underline="hover">
-                        Términos de Servicio
-                      </Link>{' '}
-                      y la{' '}
-                      <Link href="#" underline="hover">
-                        Política de Privacidad
-                      </Link>
-                    </Typography>
-                  }
-                />
+
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={
+                  loading ||
+                  !formData.name ||
+                  !formData.email ||
+                  !formData.password ||
+                  !formData.confirmPassword ||
+                  !formData.acceptTerms
+                }
+                sx={{
+                  bgcolor: '#2e6ff2',
+                  color: 'white',
+                  py: 1.5,
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  mt: 3,
+                  mb: 2,
+                  '&:hover': {
+                    bgcolor: '#1e5fd9',
+                  },
+                }}
+              >
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </Button>
+
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  ¿Ya tienes cuenta?{' '}
+                  <Link
+                    component={RouterLink}
+                    to="/login"
+                    sx={{
+                      color: '#2e6ff2',
+                      fontWeight: 'bold',
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Inicia sesión aquí
+                  </Link>
+                </Typography>
               </Box>
             </Box>
-            
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={
-                !formData.name || 
-                !formData.email || 
-                !formData.password || 
-                !formData.confirmPassword ||
-                !formData.acceptTerms
-              }
-            >
-              Crear Cuenta
-            </Button>
-            
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Link component={RouterLink} to="/login" variant="body2">
-                ¿Ya tienes una cuenta? Inicia sesión
-              </Link>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
   );
 };
 

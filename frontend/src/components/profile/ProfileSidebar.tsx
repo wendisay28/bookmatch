@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
@@ -6,6 +7,7 @@ import {
   CardContent,
   Chip,
   Divider,
+  IconButton,
   LinearProgress,
   Stack,
   Typography
@@ -14,7 +16,8 @@ import {
   Edit as EditIcon,
   MenuBook as BookIcon,
   EmojiEvents as TrophyIcon,
-  AutoStories as AutoStoriesIcon
+  AutoStories as AutoStoriesIcon,
+  CameraAlt as CameraIcon
 } from '@mui/icons-material';
 
 interface ProfileSidebarProps {
@@ -31,41 +34,79 @@ interface ProfileSidebarProps {
   };
 }
 
-export const ProfileSidebar = ({ userData }: ProfileSidebarProps) => (
-  <>
-    <Card elevation={3}>
-      <CardContent sx={{ textAlign: 'center', pt: 4 }}>
-        <Avatar
-          src={userData.photoUrl}
-          sx={{ width: 150, height: 150, mx: 'auto', mb: 2, border: '4px solid white', boxShadow: 3 }}
-        />
-        <Typography variant="h4" gutterBottom fontWeight="bold">
-          {userData.name}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Miembro desde {userData.memberSince} • ID: {userData.userId}
-        </Typography>
-        <Box sx={{ my: 2 }}>
-          <Chip
-            icon={<TrophyIcon />}
-            label={`Nivel ${userData.readerLevel}`}
-            color="primary"
-            sx={{ fontWeight: 'bold', fontSize: '1rem', py: 2.5 }}
-          />
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={<EditIcon />}
-          fullWidth
-          sx={{ mt: 2 }}
-        >
-          Editar Perfil
-        </Button>
-      </CardContent>
-    </Card>
+export const ProfileSidebar = ({ userData }: ProfileSidebarProps) => {
+  const navigate = useNavigate();
 
-    <Card sx={{ mt: 3 }} elevation={2}>
-      <CardContent>
+  const handleEditProfile = () => {
+    navigate('/profile/edit');
+  };
+
+  return (
+    <>
+      <Card elevation={3}>
+        <CardContent sx={{ textAlign: 'center', pt: 4 }}>
+          <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+            <Avatar
+              src={userData.photoUrl}
+              sx={{ width: 150, height: 150, border: '4px solid white', boxShadow: 3 }}
+            />
+            <IconButton
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                bgcolor: 'white',
+                boxShadow: 2,
+                '&:hover': {
+                  bgcolor: '#2e6ff2',
+                  color: 'white',
+                },
+                border: '3px solid white',
+              }}
+              size="small"
+              onClick={handleEditProfile}
+            >
+              <CameraIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Typography variant="h4" gutterBottom fontWeight="bold">
+            {userData.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Miembro desde {userData.memberSince} • ID: {userData.userId}
+          </Typography>
+          <Box sx={{ my: 2 }}>
+            <Chip
+              icon={<TrophyIcon />}
+              label={`Nivel ${userData.readerLevel}`}
+              sx={{
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                py: 2.5,
+                background: 'linear-gradient(135deg, #2e6ff2 0%, #53f682 100%)',
+                color: 'white',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 4px 12px rgba(46, 111, 242, 0.3)',
+                '& .MuiChip-icon': {
+                  color: 'white',
+                }
+              }}
+            />
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            fullWidth
+            sx={{ mt: 2 }}
+            onClick={handleEditProfile}
+          >
+            Editar Perfil
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mt: 3 }} elevation={2}>
+        <CardContent>
         <Typography variant="h6" gutterBottom fontWeight="bold">
           Estadísticas
         </Typography>
@@ -100,13 +141,22 @@ export const ProfileSidebar = ({ userData }: ProfileSidebarProps) => (
           <LinearProgress
             variant="determinate"
             value={userData.levelProgressPercent}
-            sx={{ height: 8, borderRadius: 4 }}
+            sx={{
+              height: 10,
+              borderRadius: 5,
+              bgcolor: 'rgba(46, 111, 242, 0.1)',
+              '& .MuiLinearProgress-bar': {
+                background: 'linear-gradient(90deg, #2e6ff2 0%, #53f682 100%)',
+                borderRadius: 5,
+              }
+            }}
           />
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
             {userData.levelProgressPercent}% completado
           </Typography>
         </Box>
-      </CardContent>
-    </Card>
-  </>
-);
+        </CardContent>
+      </Card>
+    </>
+  );
+};

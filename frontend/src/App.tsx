@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -14,6 +14,10 @@ import LibraryPage from './pages/LibraryPage';
 import MashPage from './pages/MashPage';
 import EventsPage from './pages/EventsPage';
 import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import EditProfilePage from './pages/EditProfilePage';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 // Components
 import BottomNav from './components/BottomNav';
@@ -52,6 +56,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
+  useEffect(() => {
+    document.title = 'Ruedelo';
+  }, []);
+
   return (
     <Router>
       <ThemeProvider theme={theme}>
@@ -70,6 +78,10 @@ function App() {
                   <Route path="/mash" element={<MashPage />} />
                   <Route path="/events" element={<EventsPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/profile/edit" element={<EditProfilePage />} />
+                  <Route path="/subscription" element={<SubscriptionPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
                 </Routes>
               </Layout>
             </SnackbarProvider>

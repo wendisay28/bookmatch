@@ -1,124 +1,189 @@
-import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
   TextField,
   Button,
-  Paper,
+  Card,
+  CardContent,
   Link,
   Alert,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
+import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+    setLoading(true);
+
     try {
-      // Aquí irá la lógica de autenticación con Supabase
-      console.log('Iniciando sesión con:', { email });
-      // Simulando una llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Redirigir al dashboard después del login
-      navigate('/');
-    } catch (err) {
-      setError('Error al iniciar sesión. Verifica tus credenciales.');
+      await login(email, password);
+      // El navigate se hace automáticamente en el AuthContext
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
       console.error('Error en login:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h4" sx={{ mb: 1 }}>
-          Iniciar Sesión
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 4 }}>
-          ¡Bienvenido de nuevo a BookMatch!
-        </Typography>
-        
-        <Paper
-          elevation={3}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: '#f5f5f5',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Card
           sx={{
-            p: 4,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            border: '1px solid #e0e0e0',
           }}
         >
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Correo Electrónico"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Contraseña"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={!email || !password}
-            >
-              Iniciar Sesión
-            </Button>
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
-                ¿Olvidaste tu contraseña?
-              </Link>
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Typography variant="h4" fontWeight="bold" sx={{ color: '#333333', mb: 1 }}>
+                Bienvenido a Ruedelo
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Inicia sesión para continuar
+              </Typography>
             </Box>
-          </Box>
-        </Paper>
-        
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            ¿No tienes una cuenta?{' '}
-            <Link component={RouterLink} to="/register" variant="body2">
-              Regístrate aquí
-            </Link>
-          </Typography>
-        </Box>
-      </Box>
-    </Container>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                fullWidth
+                label="Correo electrónico"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Email sx={{ color: '#2e6ff2' }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                label="Contraseña"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                sx={{ mb: 3 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: '#2e6ff2' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                fullWidth
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={loading || !email || !password}
+                sx={{
+                  bgcolor: '#2e6ff2',
+                  color: 'white',
+                  py: 1.5,
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  mb: 2,
+                  '&:hover': {
+                    bgcolor: '#1e5fd9',
+                  },
+                }}
+              >
+                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+              </Button>
+
+              <Box sx={{ textAlign: 'center' }}>
+                <Link
+                  component={RouterLink}
+                  to="/forgot-password"
+                  variant="body2"
+                  sx={{
+                    color: '#2e6ff2',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </Box>
+            </Box>
+
+            <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #e0e0e0', textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                ¿No tienes cuenta?{' '}
+                <Link
+                  component={RouterLink}
+                  to="/register"
+                  sx={{
+                    color: '#2e6ff2',
+                    fontWeight: 'bold',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  Regístrate aquí
+                </Link>
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
   );
 };
 

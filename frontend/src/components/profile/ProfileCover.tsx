@@ -12,6 +12,9 @@ export const ProfileCover = ({ coverUrl }: ProfileCoverProps) => (
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       position: 'relative',
+      borderRadius: '12px',
+      border: '1px solid #e0e0e0',
+      overflow: 'hidden',
       '&::after': {
         content: '""',
         position: 'absolute',

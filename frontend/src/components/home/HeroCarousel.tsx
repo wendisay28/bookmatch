@@ -38,7 +38,7 @@ const carouselItems = [
     description: 'Participa en nuestra campaña y recibe 3 intercambios gratis',
     date: 'Hasta fin de mes',
     image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800&q=80',
-    creator: 'BookMatch',
+    creator: 'Ruedelo',
     creatorAvatar: 'https://i.pravatar.cc/150?img=20',
   },
   {
