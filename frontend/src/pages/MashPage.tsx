@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Book, ListAlt, Repeat, CheckCircle, Info, Close,
-  Check, Mail, Visibility, Settings,
+  Check, Mail, Visibility, Settings, LocationOn as LocationIcon,
   Add as AddIcon, PhotoCamera, Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
