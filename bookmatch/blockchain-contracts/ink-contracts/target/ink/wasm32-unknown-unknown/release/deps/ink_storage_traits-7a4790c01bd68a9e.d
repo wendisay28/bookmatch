@@ -1,0 +1,9 @@
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/ink/wasm32-unknown-unknown/release/deps/ink_storage_traits-7a4790c01bd68a9e.d: /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/lib.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/impls/mod.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/storage.rs
+
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/ink/wasm32-unknown-unknown/release/deps/libink_storage_traits-7a4790c01bd68a9e.rlib: /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/lib.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/impls/mod.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/storage.rs
+
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/ink/wasm32-unknown-unknown/release/deps/libink_storage_traits-7a4790c01bd68a9e.rmeta: /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/lib.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/impls/mod.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/storage.rs
+
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/lib.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/impls/mod.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ink_storage_traits-5.1.1/src/storage.rs:

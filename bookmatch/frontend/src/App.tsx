@@ -9,16 +9,19 @@ import { SnackbarProvider } from 'notistack';
 import theme from './theme/theme';
 
 // Pages
-import HomePage from './pages/HomePage';
-import LibraryPage from './pages/LibraryPage';
+import HomePage from './pages/HomePageNew';
+import ExplorePage from './pages/ExplorePage';
 import MashPage from './pages/MashPage';
+import MatchPage from './pages/MatchPage';
 import EventsPage from './pages/EventsPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EditProfilePage from './pages/EditProfilePage';
 import SubscriptionPage from './pages/SubscriptionPage';
-import CatalogPage from './pages/CatalogPage';
+
+// Blockchain Demo (LATIN HACK)
+import { BookContractDemo } from './components/blockchain/BookContractDemo';
 
 // Components
 import BottomNav from './components/BottomNav';
@@ -27,6 +30,7 @@ import TopAppBar from './components/TopAppBar';
 // Context
 import { AuthProvider } from './context/AuthContext';
 import { MenuProvider } from './context/MenuContext';
+import { BlockchainProvider } from './contexts/BlockchainContext';
 
 // Layout component to handle different layouts based on route
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -67,26 +71,31 @@ function App() {
         <CssBaseline />
         <AuthProvider>
           <MenuProvider>
-            <SnackbarProvider
-              maxSnack={3}
-              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-              autoHideDuration={3000}
-            >
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/explore" element={<LibraryPage />} />
-                  <Route path="/catalog" element={<CatalogPage />} />
-                  <Route path="/mash" element={<MashPage />} />
-                  <Route path="/events" element={<EventsPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/profile/edit" element={<EditProfilePage />} />
-                  <Route path="/subscription" element={<SubscriptionPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                </Routes>
-              </Layout>
-            </SnackbarProvider>
+            <BlockchainProvider>
+              <SnackbarProvider
+                maxSnack={3}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                autoHideDuration={3000}
+              >
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/explore" element={<ExplorePage />} />
+                    <Route path="/mash" element={<MashPage />} />
+                    <Route path="/match" element={<MatchPage />} />
+                    <Route path="/events" element={<EventsPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/profile/edit" element={<EditProfilePage />} />
+                    <Route path="/subscription" element={<SubscriptionPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+
+                    {/* Blockchain Demo - LATIN HACK */}
+                    <Route path="/blockchain-demo" element={<BookContractDemo />} />
+                  </Routes>
+                </Layout>
+              </SnackbarProvider>
+            </BlockchainProvider>
           </MenuProvider>
         </AuthProvider>
       </ThemeProvider>

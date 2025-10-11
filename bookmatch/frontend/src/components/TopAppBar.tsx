@@ -23,14 +23,13 @@ import {
   ChatBubbleOutline as MessagesIcon,
   Home as HomeIcon,
   Search as SearchIcon,
-  SwapHoriz as MashIcon,
   Event as EventIcon,
   Person as PersonIcon,
   Menu as MenuIcon,
   Settings,
   Logout,
   WorkspacePremium as PremiumIcon,
-  ShoppingCart as ShoppingCartIcon
+  Favorite as MatchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useMenu } from '../context/MenuContext';
@@ -110,8 +109,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({ onMenuClick }) => {
   const routes = [
     { path: '/', label: 'Inicio', icon: <HomeIcon /> },
     { path: '/explore', label: 'Explorar', icon: <SearchIcon /> },
-    { path: '/catalog', label: 'Catálogo', icon: <ShoppingCartIcon /> },
-    { path: '/mash', label: 'Match', icon: <MashIcon /> },
+    { path: '/match', label: 'Match', icon: <MatchIcon /> },
     { path: '/events', label: 'Eventos', icon: <EventIcon /> },
   ];
 
@@ -223,7 +221,7 @@ const TopAppBar: React.FC<TopAppBarProps> = ({ onMenuClick }) => {
             ))}
           </Tabs>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2, gap: 1 }}>
             <IconButton
               sx={{
                 color: 'text.secondary',

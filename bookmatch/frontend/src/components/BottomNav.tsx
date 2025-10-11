@@ -3,9 +3,9 @@ import { BottomNavigation, BottomNavigationAction, Paper, useTheme, useMediaQuer
 import {
   Home as HomeIcon,
   Search as SearchIcon,
-  SwapHoriz as MashIcon,
   Event as EventIcon,
   Person as PersonIcon,
+  Favorite as MatchIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -21,7 +21,7 @@ const BottomNav = () => {
     const path = location.pathname;
     if (path === '/') setValue(0);
     else if (path === '/explore') setValue(1);
-    else if (path === '/mash') setValue(2);
+    else if (path === '/match') setValue(2);
     else if (path === '/events') setValue(3);
     else if (path === '/profile') setValue(4);
   }, [location]);
@@ -44,7 +44,7 @@ const BottomNav = () => {
       <BottomNavigation
         showLabels
         value={value}
-        onChange={(event, newValue) => {
+        onChange={(_, newValue) => {
           setValue(newValue);
         }}
         sx={{
@@ -89,14 +89,8 @@ const BottomNav = () => {
         />
         <BottomNavigationAction
           label="Match"
-          icon={<MashIcon />}
-          onClick={() => navigate('/mash')}
-          sx={{
-            '&.Mui-selected': {
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.1) 100%)',
-              borderRadius: 3,
-            },
-          }}
+          icon={<MatchIcon />}
+          onClick={() => navigate('/match')}
         />
         <BottomNavigationAction
           label="Eventos"

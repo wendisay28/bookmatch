@@ -1,0 +1,10 @@
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/debug/deps/xcm_procedural-6e4bcc7544b840b8.d: /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/lib.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/builder_pattern.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v2.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v3.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v4.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/weight_info.rs
+
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/debug/deps/libxcm_procedural-6e4bcc7544b840b8.dylib: /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/lib.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/builder_pattern.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v2.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v3.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v4.rs /Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/weight_info.rs
+
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/lib.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/builder_pattern.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v2.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v3.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/v4.rs:
+/Users/wendynieto/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xcm-procedural-8.0.0/src/weight_info.rs:

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Container, Grid, CircularProgress } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { ProfileCover } from '../components/profile/ProfileCover';
 import { ProfileSidebar } from '../components/profile/ProfileSidebar';
 import { ProfileMainContent } from '../components/profile/ProfileMainContent';
@@ -11,6 +12,7 @@ import { getUserBadges, checkAndAwardBadges, Badge } from '../services/badgeServ
 
 const ProfilePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -111,7 +113,7 @@ const ProfilePage = () => {
   };
 
   const handleViewTracking = () => {
-    console.log('Ver trazabilidad del libro actual');
+    navigate('/mash');
   };
 
   const handleSetAvailable = () => {

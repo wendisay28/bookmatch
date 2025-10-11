@@ -1,0 +1,968 @@
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  useTheme, 
+  useMediaQuery, 
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  CardHeader,
+  CardActions,
+  Avatar,
+  IconButton,
+  TextField,
+  InputAdornment,
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemButton,
+  Chip,
+  Badge,
+  BoxProps,
+  alpha
+} from '@mui/material';
+import { motion } from 'framer-motion';
+import { 
+  Search as SearchIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  ChatBubbleOutline as CommentIcon,
+  Share as ShareIcon,
+  MoreVert as MoreVertIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  Bookmark as BookmarkIcon,
+  Send as SendIcon,
+  AddCircleOutline as AddCircleOutlineIcon,
+  ChevronRight as ChevronRightIcon,
+  AutoStories as BookIcon,
+  Groups as CommunityIcon,
+  Event as EventIcon
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+
+// Mock data for posts
+const mockPosts = [
+  {
+    id: 1,
+    user: {
+      name: 'María García',
+      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      username: 'mariag'
+    },
+    content: '¡Acabo de terminar "Cien años de soledad" de Gabriel García Márquez! ¿Alguien más lo ha leído? Me encantaría discutir sobre el realismo mágico en los comentarios. #LiteraturaLatinoamericana #Gabo',
+    image: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=800&q=80',
+    likes: 42,
+    comments: 15,
+    shares: 5,
+    isLiked: false,
+    isBookmarked: false,
+    timestamp: '2h',
+    book: {
+      title: 'Cien años de soledad',
+      author: 'Gabriel García Márquez',
+      cover: 'https://m.media-amazon.com/images/I/81d1sANmNQL._AC_UF1000,1000_QL80_.jpg'
+    }
+  },
+  {
+    id: 2,
+    user: {
+      name: 'Carlos Méndez',
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      username: 'carlosm'
+    },
+    content: 'Recomendación del día: "El amor en los tiempos del cólera". Una historia de amor que trasciende el tiempo. ¿Cuál es su libro favorito de García Márquez?',
+    image: '',
+    likes: 28,
+    comments: 8,
+    shares: 3,
+    isLiked: true,
+    isBookmarked: true,
+    timestamp: '5h',
+    book: {
+      title: 'El amor en los tiempos del cólera',
+      author: 'Gabriel García Márquez',
+      cover: 'https://m.media-amazon.com/images/I/81d1sANmNQL._AC_UF1000,1000_QL80_.jpg'
+    }
+  },
+  {
+    id: 3,
+    user: {
+      name: 'BookLover42',
+      avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+      username: 'booklover42'
+    },
+    content: '¡Nuevo en mi biblioteca! "La sombra del viento" de Carlos Ruiz Zafón. ¿Vale la pena leerlo? #LibrosEnEspañol #LiteraturaEspañola',
+    image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&q=80',
+    likes: 35,
+    comments: 12,
+    shares: 7,
+    isLiked: false,
+    isBookmarked: false,
+    timestamp: '1d',
+    book: {
+      title: 'La sombra del viento',
+      author: 'Carlos Ruiz Zafón',
+      cover: 'https://m.media-amazon.com/images/I/81d1sANmNQL._AC_UF1000,1000_QL80_.jpg'
+    }
+  }
+];
+
+// Mock data for suggested users
+const suggestedUsers = [
+  { id: 1, name: 'Ana Torres', username: 'anatorres', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' },
+  { id: 2, name: 'Luis Ramírez', username: 'luisr', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
+  { id: 3, name: 'Sofía Vargas', username: 'sofiv', avatar: 'https://randomuser.me/api/portraits/women/22.jpg' }
+];
+
+// Mock categories
+const categories = [
+  { name: 'Ficción', color: 'primary.main' },
+  { name: 'No Ficción', color: 'secondary.main' },
+  { name: 'Ciencia Ficción', color: 'success.main' },
+  { name: 'Fantasía', color: 'warning.main' },
+  { name: 'Romance', color: 'error.main' },
+  { name: 'Misterio', color: 'info.main' },
+];
+
+// Define Book type
+type Book = {
+  id: number;
+  title: string;
+  author: string;
+  exchanges: number;
+  rating: number;
+  cover: string;
+  currentHolder: string;
+  holderAvatar: string;
+  category: string;
+};
+
+// Mock TopBooks component
+const TopBooks = ({ books, onBookClick }: { books: Book[], onBookClick: (book: Book) => void }) => (
+  <Box>
+    <Typography variant="h6" gutterBottom>Libros populares</Typography>
+    <List>
+      {books.map((book, index) => (
+        <ListItem key={index}>
+          <ListItemText primary={book.title} secondary={book.author} />
+        </ListItem>
+      ))}
+    </List>
+  </Box>
+);
+
+const HomePage: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [posts, setPosts] = useState(mockPosts);
+  const [comment, setComment] = useState('');
+  const [activePost, setActivePost] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  const handleLike = (postId: number) => {
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          isLiked: !post.isLiked,
+          likes: post.isLiked ? post.likes - 1 : post.likes + 1
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleBookmark = (postId: number) => {
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          isBookmarked: !post.isBookmarked
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleCommentSubmit = (postId: number, e: React.FormEvent) => {
+    e.preventDefault();
+    if (comment.trim()) {
+      // In a real app, you would send this to your backend
+      setComment('');
+      setActivePost(null);
+    }
+  };
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
+  return (
+    <Box sx={{
+      pt: { xs: '56px', sm: '64px' },
+      minHeight: '100vh',
+      bgcolor: 'background.default',
+      position: 'relative',
+      overflowX: 'hidden',
+      width: '100%',
+      pb: { xs: '70px', sm: 4 }
+    }}>
+      <Container maxWidth="lg" sx={{ mt: 3, display: 'flex', gap: 3 }}>
+        {/* Main Feed */}
+        <Box sx={{ flex: { xs: 1, md: 2.5 } }}>
+          {/* Create Post */}
+          <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+            <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar 
+                src="https://randomuser.me/api/portraits/women/44.jpg" 
+                sx={{ width: 48, height: 48 }}
+              />
+              <Box 
+                component="button" 
+                onClick={() => navigate('/create-post')}
+                sx={{
+                  flex: 1,
+                  textAlign: 'left',
+                  p: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 4,
+                  bgcolor: 'background.paper',
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  },
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                ¿Qué estás leyendo hoy?
+              </Box>
+            </Box>
+            <Divider />
+            <Box sx={{ p: 1, display: 'flex', justifyContent: 'space-around' }}>
+              <Button 
+                startIcon={<AddCircleOutlineIcon />}
+                sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 500, flex: 1 }}
+                onClick={() => navigate('/add-book')}
+              >
+                Añadir libro
+              </Button>
+              <Divider orientation="vertical" flexItem />
+              <Button 
+                startIcon={<ShareIcon />}
+                sx={{ textTransform: 'none', color: 'text.secondary', fontWeight: 500, flex: 1 }}
+              >
+                Compartir
+              </Button>
+            </Box>
+          </Card>
+
+          {/* Posts Feed */}
+          {posts.map((post) => (
+            <Card key={post.id} sx={{ mb: 3, borderRadius: 2, boxShadow: 1, overflow: 'hidden' }}>
+              {/* Post Header */}
+              <CardHeader
+                avatar={
+                  <Avatar 
+                    src={post.user.avatar} 
+                    alt={post.user.name}
+                    sx={{ width: 40, height: 40, cursor: 'pointer' }}
+                    onClick={() => navigate(`/profile/${post.user.username}`)}
+                  />
+                }
+                action={
+                  <IconButton aria-label="settings">
+                    <MoreVertIcon />
+                  </IconButton>
+                }
+                title={
+                  <Box>
+                    <Typography 
+                      variant="subtitle2" 
+                      component="span"
+                      sx={{ fontWeight: 600, cursor: 'pointer' }}
+                      onClick={() => navigate(`/profile/${post.user.username}`)}
+                    >
+                      {post.user.name}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary" 
+                      component="span"
+                      sx={{ ml: 1 }}
+                    >
+                      @{post.user.username} · {post.timestamp}
+                    </Typography>
+                  </Box>
+                }
+                subheader={
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <BookIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                    <Typography variant="caption" color="text.secondary">
+                      Leyendo <strong>{post.book.title}</strong> por {post.book.author}
+                    </Typography>
+                  </Box>
+                }
+                sx={{ 
+                  pb: 1,
+                  '& .MuiCardHeader-action': { alignSelf: 'center' }
+                }}
+              />
+
+              {/* Post Content */}
+              <CardContent sx={{ py: 0, px: 2 }}>
+                <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
+                  {post.content}
+                </Typography>
+                
+                {post.image && (
+                  <Box 
+                    component="img"
+                    src={post.image}
+                    alt="Post content"
+                    sx={{
+                      width: '100%',
+                      borderRadius: 2,
+                      maxHeight: 500,
+                      objectFit: 'cover',
+                      mt: 1,
+                      cursor: 'pointer'
+                    }}
+                  />
+                )}
+
+                {/* Book Preview */}
+                <Box 
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: 'action.hover',
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'action.selected'
+                    }
+                  }}
+                  onClick={() => navigate(`/book/${post.book.title.toLowerCase().replace(/\s+/g, '-')}`)}
+                >
+                  <Box
+                    component="img"
+                    src={post.book.cover} 
+                    alt={post.book.title}
+                    sx={{
+                      width: 80,
+                      height: 120,
+                      borderRadius: 1,
+                      boxShadow: 2,
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      {post.book.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {post.book.author}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label="Ficción" 
+                        size="small" 
+                        sx={{ height: 20, fontSize: '0.7rem' }} 
+                      />
+                      <Chip 
+                        label="Literatura" 
+                        size="small" 
+                        sx={{ height: 20, fontSize: '0.7rem' }} 
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+              </CardContent>
+
+              {/* Post Actions */}
+              <CardActions sx={{ px: 2, pt: 1, pb: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <FavoriteIcon color="error" fontSize="small" />
+                  <Typography variant="caption" color="text.secondary">
+                    {formatNumber(post.likes)}
+                  </Typography>
+                </Box>
+                <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CommentIcon fontSize="small" />
+                  <Typography variant="caption" color="text.secondary">
+                    {formatNumber(post.comments)}
+                  </Typography>
+                </Box>
+                <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ShareIcon fontSize="small" />
+                  <Typography variant="caption" color="text.secondary">
+                    {formatNumber(post.shares)}
+                  </Typography>
+                </Box>
+              </CardActions>
+
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', borderTop: '1px solid', borderColor: 'divider', mt: 1 }}>
+                <Button 
+                  fullWidth 
+                  startIcon={post.isLiked ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon />}
+                  onClick={() => handleLike(post.id)}
+                  sx={{
+                    textTransform: 'none',
+                    color: post.isLiked ? 'error.main' : 'text.secondary',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                >
+                  Me gusta
+                </Button>
+                <Button 
+                  fullWidth 
+                  startIcon={<CommentIcon />}
+                  onClick={() => setActivePost(activePost === post.id ? null : post.id)}
+                  sx={{
+                    textTransform: 'none',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                >
+                  Comentar
+                </Button>
+                <Button 
+                  fullWidth 
+                  startIcon={<ShareIcon />}
+                  sx={{
+                    textTransform: 'none',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                >
+                  Compartir
+                </Button>
+                <IconButton 
+                  onClick={() => handleBookmark(post.id)}
+                  sx={{
+                    ml: 'auto',
+                    color: post.isBookmarked ? 'primary.main' : 'text.secondary'
+                  }}
+                >
+                  {post.isBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                </IconButton>
+              </Box>
+
+              {/* Comment Section */}
+              {activePost === post.id && (
+                <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <form onSubmit={(e) => handleCommentSubmit(post.id, e)}>
+                    <TextField
+                      fullWidth
+                      variant="outlined"
+                      placeholder="Escribe un comentario..."
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Avatar 
+                              src="https://randomuser.me/api/portraits/women/44.jpg" 
+                              sx={{ width: 32, height: 32 }}
+                            />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton 
+                              type="submit" 
+                              color="primary"
+                              disabled={!comment.trim()}
+                            >
+                              <SendIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                        sx: { borderRadius: 4, pl: 1 }
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          pr: 1,
+                          '& fieldset': {
+                            borderColor: 'divider',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                      }}
+                    />
+                  </form>
+                </Box>
+              )}
+            </Card>
+          ))}
+        </Box>
+
+        {/* Sidebar */}
+        {!isMobile && (
+          <Box sx={{ width: 300, flexShrink: 0 }}>
+            {/* Search */}
+            <Box sx={{ position: 'sticky', top: 80 }}>
+              <TextField
+                fullWidth
+                placeholder="Buscar en BookMatch..."
+                variant="outlined"
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: { 
+                    borderRadius: 4,
+                    bgcolor: 'background.paper',
+                    '& fieldset': {
+                      borderColor: 'divider',
+                    },
+                  }
+                }}
+                sx={{ mb: 3 }}
+              />
+
+              {/* Suggested Users */}
+              <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+                    Usuarios que quizás conozcas
+                  </Typography>
+                  <List disablePadding>
+                    {suggestedUsers.map((user) => (
+                      <ListItem 
+                        key={user.id} 
+                        disablePadding
+                        secondaryAction={
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            sx={{ 
+                              textTransform: 'none',
+                              borderRadius: 4,
+                              fontSize: '0.75rem',
+                              py: 0.5,
+                              px: 2
+                            }}
+                          >
+                            Seguir
+                          </Button>
+                        }
+                        sx={{ py: 1 }}
+                      >
+                        <ListItemButton 
+                          sx={{ borderRadius: 2 }}
+                          onClick={() => navigate(`/profile/${user.username}`)}
+                        >
+                          <ListItemAvatar>
+                            <Avatar src={user.avatar} alt={user.name} />
+                          </ListItemAvatar>
+                          <ListItemText 
+                            primary={
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                {user.name}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography variant="caption" color="text.secondary">
+                                @{user.username}
+                              </Typography>
+                            }
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </CardContent>
+              </Card>
+
+              {/* Trending Hashtags */}
+              <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+                    Tendencias
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {['#Literatura', '#Libros', '#Lectura', '#Bookstagram', '#BookLover', '#BookClub'].map((tag) => (
+                      <Chip 
+                        key={tag}
+                        label={tag} 
+                        size="small" 
+                        sx={{ 
+                          mb: 1,
+                          '&:hover': {
+                            bgcolor: 'primary.light',
+                            color: 'primary.contrastText'
+                          }
+                        }}
+                        onClick={() => navigate(`/explore/tags/${tag.slice(1)}`)}
+                      />
+                    ))}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+        )}
+      </Container>
+      
+      {/* Features Section */}
+      <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography 
+          variant="h4"
+          component="h2"
+          sx={{
+            mb: 6,
+            fontWeight: 700,
+            color: 'text.primary',
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              display: 'block',
+              width: 80,
+              height: 4,
+              bgcolor: 'primary.main',
+              mx: 'auto',
+              mt: 2,
+              borderRadius: 2
+            }
+          }}
+        >
+          Por qué elegirnos
+        </Typography>
+        
+        <Grid container spacing={4}>
+          {[
+            {
+              title: 'Comunidad de lectores',
+              description: 'Conecta con otros amantes de los libros y comparte tus lecturas favoritas.',
+              icon: <CommunityIcon fontSize="large" color="primary" />
+            },
+            {
+              title: 'Descubre nuevos libros',
+              description: 'Encuentra tu próxima lectura basada en tus intereses y preferencias.',
+              icon: <BookIcon fontSize="large" color="primary" />
+            },
+            {
+              title: 'Club de lectura virtual',
+              description: 'Participa en discusiones y eventos con otros miembros de la comunidad.',
+              icon: <EventIcon fontSize="large" color="primary" />
+            }
+          ].map((feature: {title: string, description: string, icon: JSX.Element}, index: number) => (
+            <Grid item xs={12} md={4} key={index}>
+              <motion.div
+                whileHover={{ y: -8 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    p: 3,
+                    borderRadius: 3,
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                      borderColor: 'primary.light',
+                      bgcolor: alpha(theme.palette.primary.light, 0.05)
+                    }
+                  }}
+                >
+                  <Box 
+                    sx={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: '50%',
+                      bgcolor: alpha(theme.palette.primary.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: 3
+                    }}
+                  >
+                    {feature.icon}
+                  </Box>
+                  <Typography variant="h6" component="h3" sx={{ mb: 1.5, fontWeight: 600 }}>
+                    {feature.title}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {feature.description}
+                  </Typography>
+                </Card>
+              </motion.div>
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+
+      {/* Categories Section */}
+      <Box sx={{ bgcolor: 'grey.50', py: 8, mb: 8 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography 
+              variant="h4" 
+              component="h2" 
+              sx={{
+                fontWeight: 700,
+                mb: 2,
+                color: 'text.primary'
+              }}
+            >
+              Explora por Categorías
+            </Typography>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                color: 'text.secondary',
+                maxWidth: 600,
+                mx: 'auto',
+                mb: 4
+              }}
+            >
+              Descubre libros de tus géneros favoritos y encuentra tu próxima lectura.
+            </Typography>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+              {categories && categories.map((category: {name: string, color: string}, index: number) => (
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 20,
+                      px: 3,
+                      py: 1,
+                      textTransform: 'none',
+                      color: 'text.primary',
+                      borderColor: 'divider',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        bgcolor: alpha(theme.palette.primary.main, 0.05)
+                      }
+                    }}
+                  >
+                    {category.name}
+                  </Button>
+                </motion.div>
+              ))}
+            </Box>
+          </Box>
+          
+          <Box sx={{ position: 'relative', mt: 6 }}>
+            <Box
+              component="img"
+              src="https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=800&q=80"
+              alt="Libros por categorías"
+              sx={{
+                width: '100%',
+                borderRadius: 4,
+                boxShadow: 3,
+                maxWidth: 800,
+                mx: 'auto',
+                display: 'block'
+              }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: -24,
+                right: '10%',
+                bgcolor: 'background.paper',
+                p: 2,
+                borderRadius: 2,
+                boxShadow: 3,
+                display: { xs: 'none', md: 'block' },
+                transform: 'rotate(-5deg)',
+                '&:hover': {
+                  transform: 'rotate(0deg) scale(1.05)',
+                  transition: 'all 0.3s ease'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                +10,000 libros
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                En nuestra colección
+              </Typography>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Popular Books Section */}
+      <Container maxWidth="lg" sx={{ mb: 8 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography variant="h4" component="h2" sx={{ fontWeight: 700 }}>
+            Libros Populares
+          </Typography>
+          <Button 
+            endIcon={<ChevronRightIcon />}
+            onClick={() => navigate('/catalog')}
+            sx={{ 
+              textTransform: 'none',
+              color: 'primary.main',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.05)
+              }
+            }}
+          >
+            Ver todos
+          </Button>
+        </Box>
+        
+        <TopBooks
+          books={[
+            {
+              id: 1,
+              title: 'Cien años de soledad',
+              author: 'Gabriel García Márquez',
+              exchanges: 47,
+              rating: 4.8,
+              cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop',
+              currentHolder: 'María G.',
+              holderAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=50&h=50&fit=crop',
+              category: 'Realismo Mágico'
+            },
+            {
+              id: 2,
+              title: '1984',
+              author: 'George Orwell',
+              exchanges: 42,
+              rating: 4.7,
+              cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&h=400&fit=crop',
+              currentHolder: 'Carlos L.',
+              holderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop',
+              category: 'Distopía'
+            },
+            {
+              id: 3,
+              title: 'El Principito',
+              author: 'Antoine de Saint-Exupéry',
+              exchanges: 65,
+              rating: 4.9,
+              cover: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&h=400&fit=crop',
+              currentHolder: 'Ana M.',
+              holderAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop',
+              category: 'Literatura Infantil'
+            },
+            {
+              id: 4,
+              title: 'Crimen y Castigo',
+              author: 'Fiódor Dostoievski',
+              exchanges: 38,
+              rating: 4.6,
+              cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=300&h=400&fit=crop',
+              currentHolder: 'Luis R.',
+              holderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=50&h=50&fit=crop',
+              category: 'Clásico'
+            }
+          ]}
+          onBookClick={(book) => console.log('Book clicked:', book)}
+        />
+      </Container>
+
+      {/* CTA Section */}
+      <Box sx={{ 
+        bgcolor: 'primary.main',
+        color: 'primary.contrastText',
+        py: 8,
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z\' fill=\'%23ffffff\' fill-opacity=\'0.1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
+          opacity: 0.5,
+          zIndex: 1
+        }
+      }}>
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
+          <Typography 
+            variant="h3" 
+            component="h2" 
+            sx={{
+              fontWeight: 800,
+              mb: 3,
+              fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
+              lineHeight: 1.2
+            }}
+          >
+            ¿Listo para comenzar tu próxima aventura literaria?
+          </Typography>
+          <Typography 
+            variant="h6" 
+            sx={{
+              mb: 4,
+              opacity: 0.9,
+              fontSize: { xs: '1rem', sm: '1.1rem' },
+              maxWidth: 600,
+              mx: 'auto'
+            }}
+          >
+            Únete a nuestra comunidad de lectores apasionados y descubre un mundo de historias por explorar.
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            size="large"
+            onClick={() => navigate('/register')}
+            sx={{
+              px: 5,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              textTransform: 'none',
+              fontSize: '1.1rem',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+              '&:hover': {
+                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Regístrate gratis
+          </Button>
+        </Container>
+      </Box>
+    </Box>
+  );
+};
+
+export default HomePage;

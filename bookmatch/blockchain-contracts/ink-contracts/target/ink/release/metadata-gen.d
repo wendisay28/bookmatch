@@ -1,0 +1,1 @@
+/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/ink/release/metadata-gen: /Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/lib.rs /private/var/folders/8z/l5h1t26n04n3hmnzkywq8f680000gn/T/cargo-contract_0ITfEe/.ink/metadata_gen/main.rs

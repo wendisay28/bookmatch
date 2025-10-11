@@ -6,11 +6,13 @@ interface TopBook {
   id: number;
   title: string;
   author: string;
-  exchanges: number;
+  exchanges?: number;
+  sales?: number;
   rating: number;
   cover: string;
-  currentHolder: string;
-  holderAvatar: string;
+  currentHolder?: string;
+  holderAvatar?: string;
+  price?: number;
   category: string;
 }
 
@@ -119,7 +121,7 @@ const TopBooks: React.FC<TopBooksProps> = ({ books, onBookClick }) => {
                 }}
               >
                 <SwapHoriz sx={{ fontSize: '0.9rem' }} />
-                {book.exchanges}
+                {book.exchanges || book.sales}
               </Box>
               {index < 3 && (
                 <Box
@@ -186,15 +188,26 @@ const TopBooks: React.FC<TopBooksProps> = ({ books, onBookClick }) => {
                   mb: 1,
                 }}
               />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-                <Avatar
-                  src={book.holderAvatar}
-                  sx={{ width: 20, height: 20 }}
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Con {book.currentHolder}
-                </Typography>
-              </Box>
+              {book.currentHolder ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, pt: 1, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                  <Avatar
+                    src={book.holderAvatar}
+                    sx={{ width: 20, height: 20 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    Con {book.currentHolder}
+                  </Typography>
+                </Box>
+              ) : book.price ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, pt: 1, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    Precio
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary">
+                    ${book.price.toLocaleString()}
+                  </Typography>
+                </Box>
+              ) : null}
             </CardContent>
           </Card>
         ))}

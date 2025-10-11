@@ -1,0 +1,1 @@
+{"rustc":9783247635632824192,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[447808257890806277,"build_script_build",false,11853052808315936968]],"local":[{"RerunIfChanged":{"output":"release/build/linkme-d7078453d069bffd/output","paths":["build.rs"]}}],"rustflags":["--cap-lints=allow","-Clink-dead-code"],"config":0,"compile_kind":0}

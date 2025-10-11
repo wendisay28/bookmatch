@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Grid, Box, Fab } from '@mui/material';
+import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import {
+  Container,
+  Grid,
+  Box,
+  Fab,
+  Typography,
+  Alert,
+  Skeleton
+} from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { collection, addDoc, getDocs, query, orderBy, Timestamp, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../config/firebase';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Event, NewEventForm } from '../types/events';
@@ -12,20 +18,24 @@ import EventFilters from '../components/events/EventFilters';
 import EventCard from '../components/events/EventCard';
 import CreateEventDialog from '../components/events/CreateEventDialog';
 
-const EventsPage = () => {
+const EventsPage: React.FC = () => {
   const { user } = useAuth();
 
-  // State management
+  // -- Estados de UI y lógica --
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [currentTab, setCurrentTab] = useState(0);
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
+
   const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [errorLoading, setErrorLoading] = useState<string | null>(null);
+
+  const [creating, setCreating] = useState<boolean>(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+
   const [newEvent, setNewEvent] = useState<NewEventForm>({
     title: '',
     description: '',
@@ -37,21 +47,46 @@ const EventsPage = () => {
     isPremium: false,
   });
 
-  // Load events from Firestore
+  // -- Efecto para cargar eventos desde Supabase al montarse --
   useEffect(() => {
     const loadEvents = async () => {
+      setLoading(true);
+      setErrorLoading(null);
       try {
-        const eventsQuery = query(collection(db, 'events'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(eventsQuery);
-        const loadedEvents = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const loadedEvents = (data || []).map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          date: event.date,
+          time: event.time,
+          location: event.location,
+          category: event.category,
+          maxAttendees: event.max_attendees || 50,
+          attendees: event.attendees || 0,
+          isPremium: event.is_premium || false,
+          image: event.image || 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80',
+          host: {
+            name: event.host_name || 'Anónimo',
+            avatar: event.host_avatar || 'https://i.pravatar.cc/150?img=1',
+            userId: event.host_user_id || ''
+          },
+          createdAt: event.created_at
         })) as Event[];
+
+        // Combinar con mockEvents
         setEvents([...mockEvents, ...loadedEvents]);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading events:', error);
+      } catch (err) {
+        console.error('Error al cargar eventos:', err);
+        setErrorLoading('No se pudieron cargar los eventos. Mostrando eventos de ejemplo.');
         setEvents(mockEvents);
+      } finally {
         setLoading(false);
       }
     };
@@ -59,88 +94,101 @@ const EventsPage = () => {
     loadEvents();
   }, []);
 
-  // Filter events based on search and category
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'Todos' || event.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // -- Filtrado con memo para evitar recomputaciones innecesarias --
+  const filteredEvents = useMemo(() => {
+    return events.filter(evt => {
+      const matchesSearch =
+        evt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        evt.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'Todos' || evt.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [events, searchQuery, selectedCategory]);
 
-  // Toggle favorite
+  // -- Función para alternar favorito --
   const toggleFavorite = (eventId: string | number) => {
+    const idStr = String(eventId);
     setFavorites(prev =>
-      prev.includes(eventId as number) ? prev.filter(id => id !== eventId) : [...prev, eventId as number]
+      prev.some(id => String(id) === idStr)
+        ? prev.filter(id => String(id) !== idStr)
+        : [...prev, idStr]
     );
   };
 
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // -- Manejo de imagen seleccionada --
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
     if (file) {
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else {
+      setImagePreview('');
     }
   };
 
-  // Handle event form changes
+  // -- Manejo de cambios en el formulario del nuevo evento --
   const handleEventChange = (changes: Partial<NewEventForm>) => {
     setNewEvent(prev => ({ ...prev, ...changes }));
   };
 
-  // Create new event
+  // -- Validación antes de crear --
+  const validateNewEvent = (): string | null => {
+    if (!newEvent.title.trim()) return 'El título es obligatorio';
+    if (!newEvent.date) return 'La fecha es obligatoria';
+    if (!newEvent.time) return 'La hora es obligatoria';
+    if (!newEvent.location.trim()) return 'La ubicación es obligatoria';
+    if (!newEvent.category.trim()) return 'La categoría es obligatoria';
+    return null;
+  };
+
+  // -- Crear nuevo evento --
   const handleCreateEvent = async () => {
     if (!user) {
       alert('Debes iniciar sesión para crear un evento');
       return;
     }
-
-    if (!newEvent.title || !newEvent.date || !newEvent.time || !newEvent.location || !newEvent.category) {
-      alert('Por favor completa todos los campos requeridos');
+    const validationError = validateNewEvent();
+    if (validationError) {
+      alert(validationError);
       return;
     }
-
     setCreating(true);
 
     try {
-      let imageUrl = 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80';
+      let imageUrl =
+        'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80';
 
-      // Upload image to Supabase Storage if exists
+      // Subir imagen si existe
       if (imageFile) {
-        try {
-          const fileExt = imageFile.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-          const filePath = `${fileName}`;
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(7)}.${fileExt}`;
+        const filePath = fileName;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
+          .from('events')
+          .upload(filePath, imageFile, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Error subiendo imagen:', uploadError);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
             .from('events')
-            .upload(filePath, imageFile, {
-              cacheControl: '3600',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Error uploading image to Supabase:', uploadError);
-            console.warn('Using default image instead');
-          } else {
-            const { data: { publicUrl } } = supabase.storage
-              .from('events')
-              .getPublicUrl(filePath);
-
-            imageUrl = publicUrl;
-            console.log('Image uploaded successfully:', imageUrl);
-          }
-        } catch (imgError) {
-          console.error('Image upload failed:', imgError);
-          console.warn('Continuing with default image');
+            .getPublicUrl(filePath);
+          imageUrl = publicUrl;
         }
       }
 
-      // Create event in Firestore
+      // Insertar evento en Supabase
       const eventData = {
         title: newEvent.title,
         description: newEvent.description,
@@ -148,27 +196,48 @@ const EventsPage = () => {
         time: newEvent.time,
         location: newEvent.location,
         category: newEvent.category,
-        maxAttendees: parseInt(newEvent.maxAttendees) || 50,
+        max_attendees: parseInt(newEvent.maxAttendees) || 50,
         attendees: 0,
-        isPremium: newEvent.isPremium,
+        is_premium: newEvent.isPremium,
         image: imageUrl,
-        host: {
-          name: user.name,
-          avatar: user.avatar || 'https://i.pravatar.cc/150?img=1',
-          userId: user.id,
-        },
-        createdAt: Timestamp.now(),
+        host_name: user.name,
+        host_avatar: user.avatar || 'https://i.pravatar.cc/150?img=1',
+        host_user_id: user.id,
+        created_at: new Date().toISOString()
       };
 
-      const docRef = await addDoc(collection(db, 'events'), eventData);
+      const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single();
 
-      // Add event to local list
-      setEvents(prev => [{
-        id: docRef.id,
-        ...eventData,
-      } as Event, ...prev]);
+      if (error) throw error;
 
-      // Reset form
+      // Agregar evento a la lista local
+      const newEventObj: Event = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        time: data.time,
+        location: data.location,
+        category: data.category,
+        maxAttendees: data.max_attendees,
+        attendees: data.attendees,
+        isPremium: data.is_premium,
+        image: data.image,
+        host: {
+          name: data.host_name,
+          avatar: data.host_avatar,
+          userId: data.host_user_id
+        },
+        createdAt: data.created_at
+      };
+
+      setEvents(prev => [newEventObj, ...prev]);
+
+      // Resetear formulario
       setOpenCreateDialog(false);
       setNewEvent({
         title: '',
@@ -182,43 +251,45 @@ const EventsPage = () => {
       });
       setImageFile(null);
       setImagePreview('');
-
-      alert('¡Evento creado exitosamente!');
-    } catch (error: any) {
-      console.error('Error creating event:', error);
-      const errorMessage = error?.message || error?.toString() || 'Error desconocido';
-      alert(`Error al crear el evento: ${errorMessage}`);
+      alert('Evento creado exitosamente');
+    } catch (err: any) {
+      console.error('Error creando evento:', err);
+      alert(`No se pudo crear el evento: ${err?.message || err}`);
     } finally {
       setCreating(false);
     }
   };
 
-  // Delete event
-  const handleDeleteEvent = async (eventId: string, eventImage: string) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+  // -- Eliminar evento --
+  const handleDeleteEvent = async (eventId: string | number, eventImage: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este evento?')) {
       return;
     }
-
     try {
-      await deleteDoc(doc(db, 'events', eventId));
+      // Eliminar de Supabase
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
 
-      // Delete image from Supabase if not default
+      if (error) throw error;
+
+      // Si la imagen no es la por defecto, borrarla de Supabase Storage
       if (eventImage && !eventImage.includes('unsplash.com')) {
-        try {
-          const imagePath = eventImage.split('/').pop();
-          if (imagePath) {
-            await supabase.storage.from('events').remove([imagePath]);
-          }
-        } catch (imgError) {
-          console.error('Error deleting image:', imgError);
+        const parts = eventImage.split('/');
+        const imagePath = parts[parts.length - 1];
+        if (imagePath) {
+          await supabase.storage
+            .from('events')
+            .remove([imagePath]);
         }
       }
 
-      setEvents(prev => prev.filter(event => event.id !== eventId));
+      setEvents(prev => prev.filter(evt => evt.id !== eventId));
       alert('Evento eliminado exitosamente');
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      alert('Error al eliminar el evento. Por favor intenta de nuevo.');
+    } catch (err) {
+      console.error('Error eliminando evento:', err);
+      alert('No se pudo eliminar el evento.');
     }
   };
 
@@ -226,63 +297,90 @@ const EventsPage = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: '#FAFAFA',
-        pt: '72px',
+        backgroundColor: '#F5F5F5',
+        pt: '80px',
         pb: 4,
       }}
     >
-      <Container maxWidth="xl">
-        {/* Header with Tabs and Search */}
+      <Container maxWidth="lg">
+        {/* Header con tabs y búsqueda */}
         <EventsHeader
           currentTab={currentTab}
           searchQuery={searchQuery}
-          onTabChange={(e, newValue) => setCurrentTab(newValue)}
-          onSearchChange={(e) => setSearchQuery(e.target.value)}
+          onTabChange={(e, v) => setCurrentTab(v)}
+          onSearchChange={e => setSearchQuery(e.target.value)}
         />
 
-        {/* Category Filters */}
-        <EventFilters
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-        />
+        {/* Filtros de categorías */}
+        <Box mt={2}>
+          <EventFilters
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        </Box>
 
-        {/* Events Grid */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          {filteredEvents.map((event, index) => (
-            <Grid item xs={12} sm={6} lg={4} key={event.id}>
-              <EventCard
-                event={event}
-                index={index}
-                isFavorite={favorites.includes(event.id as number)}
-                isOwnEvent={user ? event.host?.userId === user.id : false}
-                onToggleFavorite={toggleFavorite}
-                onDelete={handleDeleteEvent}
-              />
+        {/* Contenido principal */}
+        <Box mt={3}>
+          {loading ? (
+            <Grid container spacing={2}>
+              {[...Array(6)].map((_, idx) => (
+                <Grid item xs={12} sm={6} md={4} key={idx}>
+                  <Skeleton variant="rectangular" height={200} />
+                </Grid>
+              ))}
             </Grid>
-          ))}
-        </Grid>
+          ) : errorLoading ? (
+            <Alert severity="error">{errorLoading}</Alert>
+          ) : filteredEvents.length === 0 ? (
+            <Box textAlign="center" mt={6}>
+              <Typography variant="h6" color="textSecondary">
+                No hay eventos para mostrar
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {filteredEvents.map((evt, idx) => (
+                <Grid item xs={12} sm={6} lg={4} key={evt.id}>
+                  <EventCard
+                    event={evt}
+                    index={idx}
+                    isFavorite={favorites.some(favId => String(favId) === String(evt.id))}
+                    isOwnEvent={
+                      user ? evt.host?.userId === user.id : false
+                    }
+                    onToggleFavorite={() => toggleFavorite(evt.id)}
+                    onDelete={() =>
+                      handleDeleteEvent(evt.id, evt.image)
+                    }
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
 
-        {/* Floating Action Button */}
+        {/* Botón flotante para crear evento */}
         <Fab
           color="primary"
           aria-label="crear evento"
           onClick={() => setOpenCreateDialog(true)}
           sx={{
             position: 'fixed',
-            bottom: 90,
-            right: 24,
-            background: 'linear-gradient(135deg, #2e6ff2 0%, #53f682 100%)',
-            boxShadow: '0 8px 24px rgba(46, 111, 242, 0.4)',
+            bottom: 32,
+            right: 32,
+            background: 'linear-gradient(135deg, #2E6FF2 0%, #53F682 100%)',
+            boxShadow: '0 8px 20px rgba(46, 111, 242, 0.4)',
             '&:hover': {
-              background: 'linear-gradient(135deg, #1e5fd9 0%, #2ecc71 100%)',
-              boxShadow: '0 12px 32px rgba(46, 111, 242, 0.5)',
+              background:
+                'linear-gradient(135deg, #1E5FD9 0%, #2ECC71 100%)',
+              boxShadow: '0 12px 30px rgba(46, 111, 242, 0.5)',
             },
           }}
         >
           <AddIcon />
         </Fab>
 
-        {/* Create Event Dialog */}
+        {/* Diálogo para crear evento */}
         <CreateEventDialog
           open={openCreateDialog}
           creating={creating}

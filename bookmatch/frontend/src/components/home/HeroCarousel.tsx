@@ -90,17 +90,23 @@ const HeroCarousel: React.FC = () => {
   };
 
   return (
-    <Box sx={{ position: 'relative', width: '100%' }}>
+    <Box sx={{
+      position: 'relative',
+      width: '100%',
+      mt: { xs: 3, sm: 4, md: 5 },
+      mb: { xs: 2, sm: 3 }
+    }}>
       <IconButton
         onClick={() => scrollCarousel('left')}
         sx={{
           position: 'absolute',
-          left: -20,
+          left: { xs: 0, md: -20 },
           top: '50%',
           transform: 'translateY(-50%)',
           zIndex: 2,
           bgcolor: 'rgba(255,255,255,0.95)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          display: { xs: 'none', sm: 'flex' },
           '&:hover': {
             bgcolor: 'white',
             transform: 'translateY(-50%) scale(1.1)',
@@ -114,12 +120,13 @@ const HeroCarousel: React.FC = () => {
         ref={carouselRef}
         sx={{
           display: 'flex',
-          gap: 2.5,
+          gap: { xs: 2, sm: 2.5 },
           overflowX: 'auto',
           scrollbarWidth: 'none',
           '&::-webkit-scrollbar': { display: 'none' },
           pb: 2,
           width: '100%',
+          px: { xs: 0, sm: 0 },
         }}
       >
         {carouselItems.map((item) => {
@@ -130,10 +137,11 @@ const HeroCarousel: React.FC = () => {
               component={motion.div}
               whileHover={{ scale: 1.03, y: -4 }}
               sx={{
-                minWidth: 480,
-                maxWidth: 480,
-                height: 200,
+                minWidth: { xs: 300, sm: 400, md: 480 },
+                maxWidth: { xs: 300, sm: 400, md: 480 },
+                height: { xs: 'auto', sm: 200 },
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 cursor: 'pointer',
                 borderRadius: 4,
                 overflow: 'hidden',
@@ -148,7 +156,8 @@ const HeroCarousel: React.FC = () => {
               <CardMedia
                 component="img"
                 sx={{
-                  width: 220,
+                  width: { xs: '100%', sm: 220 },
+                  height: { xs: 180, sm: '100%' },
                   objectFit: 'cover',
                   filter: 'brightness(0.9)',
                 }}
@@ -212,12 +221,13 @@ const HeroCarousel: React.FC = () => {
         onClick={() => scrollCarousel('right')}
         sx={{
           position: 'absolute',
-          right: -20,
+          right: { xs: 0, md: -20 },
           top: '50%',
           transform: 'translateY(-50%)',
           zIndex: 2,
           bgcolor: 'rgba(255,255,255,0.95)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          display: { xs: 'none', sm: 'flex' },
           '&:hover': {
             bgcolor: 'white',
             transform: 'translateY(-50%) scale(1.1)',
