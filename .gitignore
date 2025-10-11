@@ -49,3 +49,11 @@ firebase-debug.*.log
 
 # Local development
 .local/
+
+# Rust/Cargo build artifacts
+target/
+**/target/
+Cargo.lock
+**/*.rlib
+**/*.rmeta
+**/*.dylib

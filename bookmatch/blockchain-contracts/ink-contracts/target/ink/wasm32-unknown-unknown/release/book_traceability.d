@@ -1,1 +1,0 @@
-/Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/target/ink/wasm32-unknown-unknown/release/book_traceability.wasm: /Users/wendynieto/hackaton/bookmatch/blockchain-contracts/ink-contracts/lib.rs
